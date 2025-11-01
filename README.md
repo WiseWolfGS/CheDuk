@@ -7,6 +7,8 @@
 
 ## 📌 현재 상태 (Current Status)
 
+![Play Screen](./play_screen.png)
+
 현재 프로젝트는 **초기 환경 설정 및 구조화 단계**에 있습니다. `pnpm` 워크스페이스 기반의 모노레포 구조가 확립되었으며, 주요 내용은 다음과 같습니다.
 
 - **워크스페이스 구성:** `cheduk-frontend`와 `remix-app`이라는 두 개의 프론트엔드 애플리케이션 및 공용 로직을 위한 `packages` 디렉토리로 구성되어 있습니다.

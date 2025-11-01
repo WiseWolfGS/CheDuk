@@ -1,0 +1,4 @@
+packages:
+  - cheduk-frontend
+  - remix-app
+  - packages/*

@@ -1,0 +1,9 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./cheduk-frontend" },
+    { "path": "./remix-app" },
+    { "path": "./packages/core-logic" },
+    { "path": "./packages/geometry-hex" }
+  ]
+}

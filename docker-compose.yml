@@ -1,0 +1,14 @@
+services:
+  cheduk-frontend:
+    build:
+      context: .
+      dockerfile: cheduk-frontend/Dockerfile
+    ports:
+      - "3000:80"
+
+  remix-app:
+    build:
+      context: .
+      dockerfile: remix-app/Dockerfile
+    ports:
+      - "5173:3000"

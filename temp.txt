@@ -3,188 +3,27 @@ Run pnpm exec biome check .
   shell: /usr/bin/bash -e {0}
   env:
     PNPM_HOME: /home/runner/setup-pnpm/node_modules/.bin
-cheduk-frontend/vite.config.ts:3:18 lint/style/useNodejsImportProtocol  FIXABLE  ━━━━━━━━━━━━━━━━━━━
+remix-app/app/routes/home.tsx:4:22 lint/correctness/noUnusedFunctionParameters  FIXABLE  ━━━━━━━━━━━
 
-  i A Node.js builtin module should be imported with the node: protocol.
+  ! This parameter is unused.
 
-    1 │ import { defineConfig } from "vite";
-    2 │ import react from "@vitejs/plugin-react";
-  > 3 │ import path from "path";
-      │                  ^^^^^^
-    4 │
-    5 │ // https://vite.dev/config/
-
-  i Using the node: protocol is more explicit and signals that the imported module belongs to Node.js.
-
-  i Unsafe fix: Add the node: protocol.
-
-     1  1 │   import { defineConfig } from "vite";
-     2  2 │   import react from "@vitejs/plugin-react";
-     3    │ - import·path·from·"path";
-        3 │ + import·path·from·"node:path";
-     4  4 │
-     5  5 │   // https://vite.dev/config/
-
-
-cheduk-frontend/src/pages/GamePage.tsx:4:13 lint/correctness/noUnusedImports  FIXABLE  ━━━━━━━━━━━━━
-
-  ! This import is unused.
-
-    2 │ import GameInfo from "../components/GameInfo";
-    3 │ import { useGameStore } from "../store/gameStore"; // Import Zustand store
-  > 4 │ import type { GameState, Tile } from "@cheduk/core-logic"; // Keep types for Board/GameInfo props if needed
-      │             ^^^^^^^^^^^^^^^^^^^
-    5 │
-    6 │ const GamePage = () => {
-
-  i Unused imports might be the result of an incomplete refactoring.
-
-  i Unsafe fix: Remove the unused imports.
-
-     2  2 │   import GameInfo from "../components/GameInfo";
-     3  3 │   import { useGameStore } from "../store/gameStore"; // Import Zustand store
-     4    │ - import·type·{·GameState,·Tile·}·from·"@cheduk/core-logic";·//·Keep·types·for·Board/GameInfo·props·if·needed
-     5  4 │
-     6  5 │   const GamePage = () => {
-
-
-cheduk-frontend/vite.config.ts:3:8 lint/correctness/noUnusedImports  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━
-
-  ! This import is unused.
-
-    1 │ import { defineConfig } from "vite";
-    2 │ import react from "@vitejs/plugin-react";
-  > 3 │ import path from "path";
-      │        ^^^^
-    4 │
-    5 │ // https://vite.dev/config/
-
-  i Unused imports might be the result of an incomplete refactoring.
-
-  i Unsafe fix: Remove the unused imports.
-
-     1  1 │   import { defineConfig } from "vite";
-     2  2 │   import react from "@vitejs/plugin-react";
-     3    │ - import·path·from·"path";
-     4  3 │
-     5  4 │   // https://vite.dev/config/
-
-
-index.ts:1:8 lint/style/useImportType  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  ! Some named imports are only used as types.
-
-  > 1 │ import { GameState, Piece, HexCoord, Player, PieceType } from "./types";
-      │        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    2 │ import { tileCoordinates } from "@cheduk/geometry-hex";
+    2 │ import type { Route } from "./+types/home";
     3 │
+  > 4 │ export function meta(args: Route.MetaArgs) {
+      │                      ^^^^
+    5 │   return [
+    6 │     { title: "New React Router App" },
 
-  i This import is only used as a type.
+  i Unused parameters might be the result of an incomplete refactoring.
 
-  > 1 │ import { GameState, Piece, HexCoord, Player, PieceType } from "./types";
-      │          ^^^^^^^^^
-    2 │ import { tileCoordinates } from "@cheduk/geometry-hex";
-    3 │
+  i Unsafe fix: If this is intentional, prepend args with an underscore.
 
-  i This import is only used as a type.
-
-  > 1 │ import { GameState, Piece, HexCoord, Player, PieceType } from "./types";
-      │                     ^^^^^
-    2 │ import { tileCoordinates } from "@cheduk/geometry-hex";
-    3 │
-
-  i This import is only used as a type.
-
-  > 1 │ import { GameState, Piece, HexCoord, Player, PieceType } from "./types";
-      │                            ^^^^^^^^
-    2 │ import { tileCoordinates } from "@cheduk/geometry-hex";
-    3 │
-
-  i Importing the types with import type ensures that they are removed by the compilers and avoids loading unnecessary modules.
-
-  i Safe fix: Add inline type keywords.
-
-    1 │ import·{·type·GameState,·type·Piece,·type·HexCoord,·Player,·PieceType·}·from·"./types";
-      │          +++++           +++++       +++++
-
-index.ts:1:38 lint/correctness/noUnusedImports  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  ! Several of these imports are unused.
-
-  > 1 │ import { GameState, Piece, HexCoord, Player, PieceType } from "./types";
-      │                                      ^^^^^^^^^^^^^^^^^
-    2 │ import { tileCoordinates } from "@cheduk/geometry-hex";
-    3 │
-
-  i Unused imports might be the result of an incomplete refactoring.
-
-  i Unsafe fix: Remove the unused imports.
-
-    1 │ import·{·GameState,·Piece,·HexCoord,·Player,·PieceType·}·from·"./types";
-      │                                      ------------------
-
-cheduk-frontend/src/components/Board.tsx:1:1 assist/source/organizeImports  FIXABLE  ━━━━━━━━━━━━━━━
-
-  × The imports and exports are not sorted.
-
-  > 1 │ import { tileCoordinates } from "@cheduk/geometry-hex";
-      │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    2 │ import PieceComponent from "./Piece";
-    3 │ import { useGameStore } from "../store/gameStore"; // Import Zustand store
-
-  i Safe fix: Organize Imports (Biome)
-
-     1  1 │   import { tileCoordinates } from "@cheduk/geometry-hex";
-     2    │ - import·PieceComponent·from·"./Piece";
-     3    │ - import·{·useGameStore·}·from·"../store/gameStore";·//·Import·Zustand·store
-        2 │ + import·{·useGameStore·}·from·"../store/gameStore";·//·Import·Zustand·store
-        3 │ + import·PieceComponent·from·"./Piece";
-     4  4 │
-     5  5 │   const Board = () => {
-
-
-cheduk-frontend/src/components/Board.tsx:33:13 lint/a11y/useSemanticElements ━━━━━━━━━━━━━━━━━━━━━━━
-
-  × The elements with this role can be changed to the following elements:
-    <button>
-
-    31 │           <div
-    32 │             key={key}
-  > 33 │             role="button"
-       │             ^^^^^^^^^^^^^
-    34 │             tabIndex={0}
-    35 │             className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group"
-
-  i For examples and more information, see WAI-ARIA Roles
-
-
-cheduk-frontend/src/components/Board.tsx format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × Formatter would have printed the following content:
-
-    42 42 │               onClick={() => onTileClick(tile)}
-    43 43 │               onKeyDown={(e) => {
-    44    │ - ··············if·(e.key·===·'Enter'·||·e.key·===·'·')·{
-       44 │ + ··············if·(e.key·===·"Enter"·||·e.key·===·"·")·{
-    45 45 │                   onTileClick(tile);
-    46 46 │                 }
-
-
-cheduk-frontend/src/components/GameInfo.tsx:1:1 assist/source/organizeImports  FIXABLE  ━━━━━━━━━━━━
-
-  × The imports and exports are not sorted.
-
-  > 1 │ import type { Player, Piece } from "@cheduk/core-logic"; // Keep Player and Piece types
-      │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    2 │ import { useGameStore } from "../store/gameStore"; // Import Zustand store
-    3 │
-
-  i Safe fix: Organize Imports (Biome)
-
-     1    │ - import·type·{·Player,·Piece·}·from·"@cheduk/core-logic";·//·Keep·Player·and·Piece·types
-        1 │ + import·type·{·Piece,·Player·}·from·"@cheduk/core-logic";·//·Keep·Player·and·Piece·types
-     2  2 │   import { useGameStore } from "../store/gameStore"; // Import Zustand store
+     2  2 │   import type { Route } from "./+types/home";
      3  3 │
+     4    │ - export·function·meta(args:·Route.MetaArgs)·{
+        4 │ + export·function·meta(_args:·Route.MetaArgs)·{
+     5  5 │     return [
+     6  6 │       { title: "New React Router App" },
 
 
 cheduk-frontend/src/index.css:3:2 lint/suspicious/noUnknownAtRules ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -240,175 +79,12 @@ cheduk-frontend/src/index.css:5:2 lint/suspicious/noUnknownAtRules ━━━━�
   i To fix this issue, consider removing the unknown at-rule.
 
 
-cheduk-frontend/src/pages/GamePage.tsx:1:1 assist/source/organizeImports  FIXABLE  ━━━━━━━━━━━━━━━━━
-
-  × The imports and exports are not sorted.
-
-  > 1 │ import Board from "../components/Board";
-      │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    2 │ import GameInfo from "../components/GameInfo";
-    3 │ import { useGameStore } from "../store/gameStore"; // Import Zustand store
-
-  i Safe fix: Organize Imports (Biome)
-
-     1    │ - import·Board·from·"../components/Board";
-     2    │ - import·GameInfo·from·"../components/GameInfo";
-     3    │ - import·{·useGameStore·}·from·"../store/gameStore";·//·Import·Zustand·store
-     4    │ - import·type·{·GameState,·Tile·}·from·"@cheduk/core-logic";·//·Keep·types·for·Board/GameInfo·props·if·needed
-        1 │ + import·type·{·GameState,·Tile·}·from·"@cheduk/core-logic";·//·Keep·types·for·Board/GameInfo·props·if·needed
-        2 │ + import·Board·from·"../components/Board";
-        3 │ + import·GameInfo·from·"../components/GameInfo";
-        4 │ + import·{·useGameStore·}·from·"../store/gameStore";·//·Import·Zustand·store
-     5  5 │
-     6  6 │   const GamePage = () => {
-
-
-cheduk-frontend/src/store/gameStore.ts:1:1 assist/source/organizeImports  FIXABLE  ━━━━━━━━━━━━━━━━━
-
-  × The imports and exports are not sorted.
-
-  > 1 │ import { create } from "zustand";
-      │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    2 │ import {
-    3 │   createInitialGameState,
-
-  i Safe fix: Organize Imports (Biome)
-
-     1    │ - import·{·create·}·from·"zustand";
-        1 │ + import·type·{·GameState,·Tile·}·from·"@cheduk/core-logic";
-     2  2 │   import {
-     3  3 │     createInitialGameState,
-    ····· │
-     5  5 │     getValidMoves,
-     6  6 │   } from "@cheduk/core-logic";
-     7    │ - import·type·{·GameState,·Tile·}·from·"@cheduk/core-logic";
-        7 │ + import·{·create·}·from·"zustand";
-     8  8 │
-     9  9 │   interface GameStore {
-
-
-cheduk-frontend/vite.config.ts:1:1 assist/source/organizeImports  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × The imports and exports are not sorted.
-
-  > 1 │ import { defineConfig } from "vite";
-      │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    2 │ import react from "@vitejs/plugin-react";
-    3 │ import path from "path";
-
-  i Safe fix: Organize Imports (Biome)
-
-     1    │ - import·{·defineConfig·}·from·"vite";
-     2    │ - import·react·from·"@vitejs/plugin-react";
-     3    │ - import·path·from·"path";
-        1 │ + import·react·from·"@vitejs/plugin-react";
-        2 │ + import·path·from·"path";
-        3 │ + import·{·defineConfig·}·from·"vite";
-     4  4 │
-     5  5 │   // https://vite.dev/config/
-
-
-index.ts:1:1 assist/source/organizeImports  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × The imports and exports are not sorted.
-
-  > 1 │ import { GameState, Piece, HexCoord, Player, PieceType } from "./types";
-      │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    2 │ import { tileCoordinates } from "@cheduk/geometry-hex";
-    3 │
-
-  i Safe fix: Organize Imports (Biome)
-
-      1     │ - import·{·GameState,·Piece,·HexCoord,·Player,·PieceType·}·from·"./types";
-      2     │ - import·{·tileCoordinates·}·from·"@cheduk/geometry-hex";
-          1 │ + import·{·tileCoordinates·}·from·"@cheduk/geometry-hex";
-          2 │ + import·{·GameState,·HexCoord,·Piece,·PieceType,·Player·}·from·"./types";
-      3   3 │
-      4   4 │   // Helper to convert HexCoord to a string key
-
-
-remix-app/app/welcome/welcome.tsx:54:7 lint/a11y/noSvgWithoutTitle ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × Alternative text title element cannot be empty
-
-    52 │     text: "React Router Docs",
-    53 │     icon: (
-  > 54 │       <svg
-       │       ^^^^
-  > 55 │         xmlns="http://www.w3.org/2000/svg"
-        ...
-  > 60 │         className="stroke-gray-600 group-hover:stroke-current dark:stroke-gray-300"
-  > 61 │       >
-       │       ^
-    62 │         <path
-    63 │           d="M9.99981 10.0751V9.99992M17.4688 17.4688C15.889 19.0485 11.2645 16.9853 7.13958 12.8604C3.01467 8.73546 0.951405 4.11091 2.53116 2.53116C4.11091 0.951405 8.73546 3.01467 12.8604 7.13958C16.9853 11.2645 19.0485 15.889 17.4688 17.4688ZM2.53132 17.4688C0.951566 15.8891 3.01483 11.2645 7.13974 7.13963C11.2647 3.01471 15.8892 0.951453 17.469 2.53121C19.0487 4.11096 16.9854 8.73551 12.8605 12.8604C8.73562 16.9853 4.11107 19.0486 2.53132 17.4688Z"
-
-  i For accessibility purposes, SVGs should have an alternative text, provided via title element. If the svg element has role="img", you should add the aria-label or aria-labelledby attribute.
-
-
-remix-app/app/welcome/welcome.tsx:74:7 lint/a11y/noSvgWithoutTitle ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × Alternative text title element cannot be empty
-
-    72 │     text: "Join Discord",
-    73 │     icon: (
-  > 74 │       <svg
-       │       ^^^^
-  > 75 │         xmlns="http://www.w3.org/2000/svg"
-        ...
-  > 80 │         className="stroke-gray-600 group-hover:stroke-current dark:stroke-gray-300"
-  > 81 │       >
-       │       ^
-    82 │         <path
-    83 │           d="M15.0686 1.25995L14.5477 1.17423L14.2913 1.63578C14.1754 1.84439 14.0545 2.08275 13.9422 2.31963C12.6461 2.16488 11.3406 2.16505 10.0445 2.32014C9.92822 2.08178 9.80478 1.84975 9.67412 1.62413L9.41449 1.17584L8.90333 1.25995C7.33547 1.51794 5.80717 1.99419 4.37748 2.66939L4.19 2.75793L4.07461 2.93019C1.23864 7.16437 0.46302 11.3053 0.838165 15.3924L0.868838 15.7266L1.13844 15.9264C2.81818 17.1714 4.68053 18.1233 6.68582 18.719L7.18892 18.8684L7.50166 18.4469C7.96179 17.8268 8.36504 17.1824 8.709 16.4944L8.71099 16.4904C10.8645 17.0471 13.128 17.0485 15.2821 16.4947C15.6261 17.1826 16.0293 17.8269 16.4892 18.4469L16.805 18.8725L17.3116 18.717C19.3056 18.105 21.1876 17.1751 22.8559 15.9238L23.1224 15.724L23.1528 15.3923C23.5873 10.6524 22.3579 6.53306 19.8947 2.90714L19.7759 2.73227L19.5833 2.64518C18.1437 1.99439 16.6386 1.51826 15.0686 1.25995ZM16.6074 10.7755L16.6074 10.7756C16.5934 11.6409 16.0212 12.1444 15.4783 12.1444C14.9297 12.1444 14.3493 11.6173 14.3493 10.7877C14.3493 9.94885 14.9378 9.41192 15.4783 9.41192C16.0471 9.41192 16.6209 9.93851 16.6074 10.7755ZM8.49373 12.1444C7.94513 12.1444 7.36471 11.6173 7.36471 10.7877C7.36471 9.94885 7.95323 9.41192 8.49373 9.41192C9.06038 9.41192 9.63892 9.93712 9.6417 10.7815C9.62517 11.6239 9.05462 12.1444 8.49373 12.1444Z"
-
-  i For accessibility purposes, SVGs should have an alternative text, provided via title element. If the svg element has role="img", you should add the aria-label or aria-labelledby attribute.
-
-
-remix-app/server.ts:1:1 assist/source/organizeImports  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × The imports and exports are not sorted.
-
-  > 1 │ import * as http from 'node:http';
-      │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    2 │ import { Server } from "socket.io";
-    3 │ // Import from core-logic
-
-  i Safe fix: Organize Imports (Biome)
-
-     1  1 │   import * as http from 'node:http';
-     2    │ - import·{·Server·}·from·"socket.io";
-        2 │ + import·type·{·GameState,·Tile·}·from·"@cheduk/core-logic";
-     3  3 │   // Import from core-logic
-     4  4 │   import {
-    ····· │
-     7  7 │     getValidMoves,
-     8  8 │   } from "@cheduk/core-logic";
-     9    │ - import·type·{·GameState,·Tile·}·from·"@cheduk/core-logic";
-        9 │ + import·{·Server·}·from·"socket.io";
-    10 10 │
-    11 11 │   const PORT = process.env.PORT || 3001;
-
-
-remix-app/server.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × Formatter would have printed the following content:
-
-     1    │ - import·*·as·http·from·'node:http';
-        1 │ + import·*·as·http·from·"node:http";
-     2  2 │   import { Server } from "socket.io";
-     3  3 │   // Import from core-logic
-
-
 check ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Some errors were emitted while running checks.
 
 
-The number of diagnostics exceeds the limit allowed. Use --max-diagnostics to increase it.
-Diagnostics not shown: 8.
 Checked 38 files in 24ms. No fixes applied.
-Found 20 errors.
-Found 7 warnings.
-Found 1 info.
+Found 3 errors.
+Found 1 warning.
 Error: Process completed with exit code 1.

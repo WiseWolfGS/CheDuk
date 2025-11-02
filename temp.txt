@@ -3,88 +3,28 @@ Run pnpm exec biome check .
   shell: /usr/bin/bash -e {0}
   env:
     PNPM_HOME: /home/runner/setup-pnpm/node_modules/.bin
-remix-app/app/routes/home.tsx:4:22 lint/correctness/noUnusedFunctionParameters  FIXABLE  ━━━━━━━━━━━
+/home/runner/work/CheDuk/CheDuk/biome.json:4:5 deserialize ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  ! This parameter is unused.
+  × Found an unknown key `ignore`.
 
-    2 │ import type { Route } from "./+types/home";
-    3 │
-  > 4 │ export function meta(args: Route.MetaArgs) {
-      │                      ^^^^
-    5 │   return [
-    6 │     { title: "New React Router App" },
+    2 │   "$schema": "https://biomejs.dev/schemas/2.3.2/schema.json",
+    3 │   "files": {
+  > 4 │     "ignore": ["**/*.css"]
+      │     ^^^^^^^^
+    5 │   },
+    6 │   "linter": {
 
-  i Unused parameters might be the result of an incomplete refactoring.
+  i Known keys:
 
-  i Unsafe fix: If this is intentional, prepend args with an underscore.
-
-     2  2 │   import type { Route } from "./+types/home";
-     3  3 │
-     4    │ - export·function·meta(args:·Route.MetaArgs)·{
-        4 │ + export·function·meta(_args:·Route.MetaArgs)·{
-     5  5 │     return [
-     6  6 │       { title: "New React Router App" },
+  - maxSize
+  - ignoreUnknown
+  - includes
+  - experimentalScannerIgnores
 
 
-cheduk-frontend/src/index.css:3:2 lint/suspicious/noUnknownAtRules ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+configuration ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  × Unexpected unknown at-rule: tailwind
-
-    1 │ @import "tailwindcss";
-    2 │
-  > 3 │ @tailwind base;
-      │  ^^^^^^^^
-    4 │ @tailwind components;
-    5 │ @tailwind utilities;
-
-  i tailwind is not a standard CSS at-rule, which may lead to unexpected styling results or failure to interpret the styles as intended.
-
-  i See MDN web docs for a known list of at-rules.
-
-  i To fix this issue, consider removing the unknown at-rule.
+  × Biome exited because the configuration resulted in errors. Please fix them.
 
 
-cheduk-frontend/src/index.css:4:2 lint/suspicious/noUnknownAtRules ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × Unexpected unknown at-rule: tailwind
-
-    3 │ @tailwind base;
-  > 4 │ @tailwind components;
-      │  ^^^^^^^^
-    5 │ @tailwind utilities;
-    6 │
-
-  i tailwind is not a standard CSS at-rule, which may lead to unexpected styling results or failure to interpret the styles as intended.
-
-  i See MDN web docs for a known list of at-rules.
-
-  i To fix this issue, consider removing the unknown at-rule.
-
-
-cheduk-frontend/src/index.css:5:2 lint/suspicious/noUnknownAtRules ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × Unexpected unknown at-rule: tailwind
-
-    3 │ @tailwind base;
-    4 │ @tailwind components;
-  > 5 │ @tailwind utilities;
-      │  ^^^^^^^^
-    6 │
-    7 │ body {
-
-  i tailwind is not a standard CSS at-rule, which may lead to unexpected styling results or failure to interpret the styles as intended.
-
-  i See MDN web docs for a known list of at-rules.
-
-  i To fix this issue, consider removing the unknown at-rule.
-
-
-check ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  × Some errors were emitted while running checks.
-
-
-Checked 38 files in 24ms. No fixes applied.
-Found 3 errors.
-Found 1 warning.
 Error: Process completed with exit code 1.

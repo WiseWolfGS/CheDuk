@@ -15,7 +15,9 @@
     "rootDirs": [".", "./.react-router/types"],
     "baseUrl": ".",
     "paths": {
-      "~/*": ["./app/*"]
+      "~/*": ["./app/*"],
+      "@cheduk/core-logic": ["../packages/core-logic/src/index.ts"],
+      "@cheduk/geometry-hex": ["../packages/geometry-hex/src/index.ts"]
     },
     "esModuleInterop": true,
     "verbatimModuleSyntax": true,

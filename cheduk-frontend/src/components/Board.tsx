@@ -1,15 +1,14 @@
-import type { BoardState, Tile } from '@cheduk/core-logic';
 import { tileCoordinates } from '@cheduk/geometry-hex';
 import PieceComponent from './Piece';
+import { useGameStore } from '../store/gameStore'; // Import Zustand store
 
-interface BoardProps {
-  board: BoardState;
-  selectedTile: Tile | null;
-  validMoves: { q: number; r: number }[];
-  onTileClick: (tile: Tile) => void;
-}
+const Board = () => { // No props needed for game state
+  // Use Zustand store to get state and actions
+  const board = useGameStore((state) => state.gameState.board);
+  const selectedTile = useGameStore((state) => state.selectedTile);
+  const validMoves = useGameStore((state) => state.validMoves);
+  const onTileClick = useGameStore((state) => state.handleTileClick);
 
-const Board = ({ board, selectedTile, validMoves, onTileClick }: BoardProps) => {
   return (
     <div 
       className="relative bg-contain bg-no-repeat bg-center w-full max-w-5xl mx-auto aspect-square"

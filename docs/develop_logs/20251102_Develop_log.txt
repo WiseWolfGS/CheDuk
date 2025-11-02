@@ -1,0 +1,42 @@
+# 2025년 11월 2일 개발 로그
+
+## 1. 게임 규칙 밸런스 패치 및 문서화
+*   오프라인 테스트 결과를 바탕으로 게임 밸런스를 조정하고, `docs/CheDuk_Rulebook_KOR.md` 파일에 반영.
+*   **경호원(守):** 부착 메커니즘을 제거하고, 이동 방식을 '직선 2칸'으로 변경. 수반 인접 시 대신 피격되는 규칙으로 수정.
+*   **대사(使) 및 첩자(諜):** 배치 단계의 전략성을 높이기 위해, 중앙 기준점으로부터의 거리가 표시된 '배치 시작점' 개념을 도입하고 배치 규칙을 수정.
+
+## 2. 백엔드 서버 기반 구축 (`remix-app`)
+*   `remix-app`을 백엔드로 사용하기로 결정하고, `MASTER_PLAN.md`에 실시간 통신, 서버 사이드 로직 등 구체적인 역할을 명시.
+*   `Socket.IO`를 사용하여 실시간 통신을 위한 기본 서버(`server.ts`)를 구현.
+*   `core-logic`의 게임 상태 관리 및 유효성 검사 로직을 서버에 통합.
+*   **모듈 해석 오류 디버깅:**
+    *   `remix-app`이 ESM 방식임에 따라, 의존성 패키지(`core-logic`, `geometry-hex`)와의 모듈 시스템 불일치로 인한 `Cannot find package`, `does not provide an export` 오류가 순차적으로 발생.
+    *   `ts-node`와 `tsconfig-paths` 조합으로 해결을 시도했으나 실패.
+    *   TypeScript 실행기를 `tsx`로 교체하고, 각 워크스페이스 패키지의 `package.json`에 `"type": "module"`을 명시하여 최종적으로 문제를 해결.
+
+## 3. 단위 테스트 환경 구축 및 테스트 강화
+*   `core-logic` 패키지에 `vitest` 테스트 프레임워크를 설치하고, `package.json`의 `test` 스크립트가 `vitest`를 실행하도록 수정.
+*   `createInitialGameState` 함수가 올바른 초기 상태를 생성하는지 검증하는 단위 테스트를 작성하고 통과.
+*   `getValidMoves` 함수에 대해 '경호원'의 이동 규칙을 검증하는 대표 테스트 케이스를 작성하고 통과.
+
+## 4. 프론트엔드 상태 관리 구조 개선
+*   `cheduk-frontend`에 `Zustand` 상태 관리 라이브러리를 도입.
+*   게임 상태와 관련 로직을 중앙에서 관리하는 `store/gameStore.ts` 스토어 파일을 생성.
+*   `App.tsx`를 포함한 주요 컴포넌트(`GamePage`, `Board`, `GameInfo`)들을 리팩토링하여, props drilling 구조를 제거하고 `Zustand` 스토어를 직접 사용하도록 변경.
+
+## 5. CI(Continuous Integration) 파이프라인 구축
+*   `GitHub Actions`를 사용하여 CI 워크플로우(`.github/workflows/ci.yml`)를 구축.
+*   워크플로우에 `pnpm` 설치, 의존성 설치, `Biome` 코드 검사, `vitest` 단위 테스트, 애플리케이션 빌드 단계를 포함하여 코드 품질 자동화를 설정.
+
+---
+
+## 🎯 다음에 작업할 내용 (Next Steps)
+
+1.  **프론트엔드-백엔드 연동:**
+    *   `cheduk-frontend`에 `socket.io-client`를 설치.
+    *   `Zustand` 스토어(`gameStore`)가 로컬 로직 대신, `Socket.IO` 이벤트를 통해 백엔드와 통신하도록 수정.
+        *   (수정) `handleTileClick`: `socket.emit('game move', ...)` 이벤트 발생.
+        *   (신규) `socket.on('game state', ...)`: 서버로부터 받은 `gameState`로 스토어 상태 업데이트.
+2.  **핵심 로직 추가 구현 및 테스트:**
+    *   규칙서에 따라 '특사(特)', '대사(使)', '외교관(外)' 등 나머지 기물들의 이동 규칙(`getValidMoves`)을 `core-logic`에 추가.
+    *   새로 추가된 로직에 대한 단위 테스트를 작성.

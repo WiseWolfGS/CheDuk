@@ -1,15 +1,15 @@
 import Board from '../components/Board';
 import GameInfo from '../components/GameInfo';
-import type { GameState, Tile } from '@cheduk/core-logic';
+import { useGameStore } from '../store/gameStore'; // Import Zustand store
+import type { GameState, Tile } from '@cheduk/core-logic'; // Keep types for Board/GameInfo props if needed
 
-interface GamePageProps {
-  gameState: GameState;
-  selectedTile: Tile | null;
-  validMoves: { q: number; r: number }[];
-  onTileClick: (tile: Tile) => void;
-}
+const GamePage = () => { // No props needed for game state
+  // Use Zustand store to get state and actions
+  const gameState = useGameStore((state) => state.gameState);
+  const selectedTile = useGameStore((state) => state.selectedTile);
+  const validMoves = useGameStore((state) => state.validMoves);
+  const onTileClick = useGameStore((state) => state.handleTileClick);
 
-const GamePage = ({ gameState, selectedTile, validMoves, onTileClick }: GamePageProps) => {
   return (
     <div className="flex flex-col lg:flex-row gap-8">
       <div className="flex-grow flex items-center justify-center">

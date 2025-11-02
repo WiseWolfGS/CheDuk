@@ -1,33 +1,12 @@
-import { useState } from 'react';
 import GamePage from './pages/GamePage';
-import { createInitialGameState, getValidMoves, movePiece, type GameState, type Tile } from '@cheduk/core-logic';
+import { useGameStore } from './store/gameStore'; // Import Zustand store
 
 function App() {
-  const [gameState, setGameState] = useState<GameState>(createInitialGameState());
-  const [selectedTile, setSelectedTile] = useState<Tile | null>(null);
-  const [validMoves, setValidMoves] = useState<{ q: number; r: number }[]>([]);
-
-  const handleTileClick = (tile: Tile) => {
-    if (selectedTile) {
-      // A piece is already selected, check if the new tile is a valid move
-      const isVaildMove = validMoves.some(move => move.q === tile.q && move.r === tile.r);
-      if (isVaildMove) {
-        const newState = movePiece(gameState, { q: selectedTile.q, r: selectedTile.r }, { q: tile.q, r: tile.r });
-        setGameState(newState);
-        setSelectedTile(null);
-        setValidMoves([]);
-      } else {
-        // Invalid move or clicked another piece, deselect
-        setSelectedTile(null);
-        setValidMoves([]);
-      }
-    } else if (tile.piece && tile.piece.player === gameState.currentPlayer) {
-      // No piece is selected, select this one if it belongs to the current player
-      setSelectedTile(tile);
-      const moves = getValidMoves(gameState.board, tile.q, tile.r);
-      setValidMoves(moves);
-    }
-  };
+  // Use Zustand store to get state and actions
+  const gameState = useGameStore((state) => state.gameState);
+  const selectedTile = useGameStore((state) => state.selectedTile);
+  const validMoves = useGameStore((state) => state.validMoves);
+  const handleTileClick = useGameStore((state) => state.handleTileClick);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-800">

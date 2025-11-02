@@ -1,9 +1,12 @@
-import type { GameState, Player } from '@cheduk/core-logic';
+import type { Player, Piece } from '@cheduk/core-logic'; // Keep Player and Piece types
+import { useGameStore } from '../store/gameStore'; // Import Zustand store
 
-type GameInfoProps = Pick<GameState, 'currentPlayer' | 'infoScores' | 'capturedPieces'>;
+const GameInfo = () => { // No props needed for game state
+  // Get state from Zustand store
+  const currentPlayer = useGameStore((state) => state.gameState.currentPlayer);
+  const infoScores = useGameStore((state) => state.gameState.infoScores);
+  const capturedPieces = useGameStore((state) => state.gameState.capturedPieces);
 
-const GameInfo = ({ currentPlayer, infoScores, capturedPieces }: GameInfoProps) => {
-  
   const renderPlayerInfo = (player: Player) => {
     const isCurrent = currentPlayer === player;
     const textColor = player === 'Red' ? 'text-red-400' : 'text-blue-400';
@@ -17,7 +20,7 @@ const GameInfo = ({ currentPlayer, infoScores, capturedPieces }: GameInfoProps) 
           <p className="font-semibold">잡은 기물:</p>
           <div className="flex flex-wrap gap-1 mt-1 min-h-[2rem]">
             {capturedPieces[player].length > 0 ? 
-              capturedPieces[player].map(p => p.type.charAt(0)).join(', ') : '(없음)'
+              capturedPieces[player].map((p: Piece) => p.type.charAt(0)).join(', ') : '(없음)'
             }
           </div>
         </div>
@@ -40,5 +43,4 @@ const GameInfo = ({ currentPlayer, infoScores, capturedPieces }: GameInfoProps) 
     </div>
   );
 };
-
 export default GameInfo;

@@ -1,5 +1,5 @@
 # Dependencies
-/node_modules
+node_modules/
 /pnpm-lock.yaml
 
 # Build artifacts
@@ -46,3 +46,7 @@ __pycache__/
 
 # Rust
 /target
+
+# Project specific files
+structure.txt
+docs/commands.md

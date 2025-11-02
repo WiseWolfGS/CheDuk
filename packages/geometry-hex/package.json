@@ -2,6 +2,7 @@
   "name": "@cheduk/geometry-hex",
   "version": "1.0.0",
   "description": "",
+  "type": "module",
   "main": "src/index.ts",
   "module": "src/index.ts",
   "types": "src/index.ts",

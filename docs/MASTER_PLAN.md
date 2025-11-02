@@ -80,7 +80,11 @@
   - **모노레포:** 프로젝트의 프론트엔드와 핵심 로직을 단일 저장소에서 관리합니다. (향후 백엔드 추가 시 확장)
   - **프론트엔드:** React 기반의 SPA(Single Page Application)로, Vite를 통해 빌드됩니다.
   - **핵심 로직:** 초기에는 TypeScript로 작성하여 프론트엔드와 통합하고, 장기적으로는 성능 향상을 위해 Rust/WASM으로 분리 및 전환을 고려합니다.
-  - **백엔드 (멀티플레이어용):** Node.js(TypeScript)와 Express, WebSocket(Socket.IO)을 사용하여 실시간 통신 서버를 구축합니다.
+  - **백엔드 (멀티플레이어용):** `remix-app`을 기반으로 구축하며, 주요 역할은 다음과 같습니다.
+  - **실시간 통신 및 게임 세션 관리:** WebSocket(Socket.IO)을 통해 클라이언트 간의 실시간 통신을 중계하고 게임 룸(세션)을 관리합니다.
+  - **서버 사이드 로직 및 상태 관리:** 모든 게임 규칙의 유효성 검사(move validation)를 서버에서 수행하여, 서버를 신뢰할 수 있는 단일 소스(Single Source of Truth)로 삼아 조작을 방지합니다.
+  - **사용자 인증 및 계정:** JWT 기반 인증을 통해 사용자 계정을 관리하고, 전적 및 프로필을 저장할 기반을 마련합니다. (장기 목표)
+  - **데이터베이스 연동:** 사용자 정보, 게임 기록 등을 PostgreSQL 또는 MongoDB에 영구적으로 저장합니다. (장기 목표)
 - **프론트엔드:** `React (TypeScript)`, `Vite`, `Tailwind CSS` (스타일링), `SVG/Canvas` (보드 렌더링)
 - **핵심 로직:** `TypeScript` (초기), `Rust/WASM` (장기 목표)
 - **백엔드:** `Node.js (TypeScript)`, `Express`, `Socket.IO`

@@ -1,0 +1,576 @@
+Run pnpm exec biome check .
+  pnpm exec biome check .
+  shell: /usr/bin/bash -e {0}
+  env:
+    PNPM_HOME: /home/runner/setup-pnpm/node_modules/.bin
+remix-app/server.ts:1:23 lint/style/useNodejsImportProtocol  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  i A Node.js builtin module should be imported with the node: protocol.
+
+  > 1 │ import * as http from 'http';
+      │                       ^^^^^^
+    2 │ import { Server } from 'socket.io';
+    3 │ // Import from core-logic
+
+  i Using the node: protocol is more explicit and signals that the imported module belongs to Node.js.
+
+  i Unsafe fix: Add the node: protocol.
+
+     1    │ - import·*·as·http·from·'http';
+        1 │ + import·*·as·http·from·'node:http';
+     2  2 │   import { Server } from 'socket.io';
+     3  3 │   // Import from core-logic
+
+
+cheduk-frontend/src/main.tsx:6:12 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+
+    4 │ import App from './App.tsx'
+    5 │
+  > 6 │ createRoot(document.getElementById('root')!).render(
+      │            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    7 │   <StrictMode>
+    8 │     <App />
+
+
+cheduk-frontend/postcss.config.js format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+
+    1 1 │   export default {
+    2 2 │     plugins: {
+    3   │ - ····'@tailwindcss/postcss':·{},
+      3 │ + ····"@tailwindcss/postcss":·{},
+    4 4 │       autoprefixer: {},
+    5 5 │     },
+    6   │ - };
+      6 │ + };
+      7 │ +
+
+
+cheduk-frontend/src/App.tsx format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+
+     1    │ - import·GamePage·from·'./pages/GamePage';
+     2    │ - import·{·useGameStore·}·from·'./store/gameStore';·//·Import·Zustand·store
+        1 │ + import·GamePage·from·"./pages/GamePage";
+        2 │ + import·{·useGameStore·}·from·"./store/gameStore";·//·Import·Zustand·store
+     3  3 │
+     4  4 │   function App() {
+    ····· │
+    15 15 │         </header>
+    16 16 │         <main className="w-full max-w-7xl mx-auto">
+    17    │ - ········<GamePage·
+    18    │ - ··········gameState={gameState}·
+       17 │ + ········<GamePage
+       18 │ + ··········gameState={gameState}
+    19 19 │             selectedTile={selectedTile}
+    20 20 │             validMoves={validMoves}
+    ····· │
+    27 27 │
+    28 28 │   export default App;
+    29    │ -
+    30 29 │
+
+
+cheduk-frontend/src/components/Board.tsx:1:1 assist/source/organizeImports  FIXABLE  ━━━━━━━━━━━━━━━
+
+  × The imports and exports are not sorted.
+
+  > 1 │ import { tileCoordinates } from '@cheduk/geometry-hex';
+      │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    2 │ import PieceComponent from './Piece';
+    3 │ import { useGameStore } from '../store/gameStore'; // Import Zustand store
+
+  i Safe fix: Organize Imports (Biome)
+
+     1  1 │   import { tileCoordinates } from '@cheduk/geometry-hex';
+     2    │ - import·PieceComponent·from·'./Piece';
+     3    │ - import·{·useGameStore·}·from·'../store/gameStore';·//·Import·Zustand·store
+        2 │ + import·{·useGameStore·}·from·'../store/gameStore';·//·Import·Zustand·store
+        3 │ + import·PieceComponent·from·'./Piece';
+     4  4 │
+     5  5 │   const Board = () => { // No props needed for game state
+
+
+cheduk-frontend/src/components/Board.tsx:27:11 lint/a11y/noStaticElementInteractions ━━━━━━━━━━━━━━━
+
+  × Static Elements should not be interactive.
+
+    26 │         return (
+  > 27 │           <div
+       │           ^^^^
+  > 28 │             key={key}
+        ...
+  > 36 │             onClick={() => onTileClick(tile)}
+  > 37 │           >
+       │           ^
+    38 │             {/* Tile Highlighter */}
+    39 │             <div className={`w-full h-full rounded-full transition-colors ${isSelected ? 'bg-yellow-500/50' : isValidMove ? 'bg-green-500/40' : 'group-hover:bg-white/20'}`} />
+
+  i To add interactivity such as a mouse or key event listener to a static element, give the element an appropriate role value.
+
+
+cheduk-frontend/src/components/Board.tsx:27:11 lint/a11y/useKeyWithClickEvents ━━━━━━━━━━━━━━━━━━━━━
+
+  × Enforce to have the onClick mouse event with the onKeyUp, the onKeyDown, or the onKeyPress keyboard event.
+
+    26 │         return (
+  > 27 │           <div
+       │           ^^^^
+  > 28 │             key={key}
+        ...
+  > 36 │             onClick={() => onTileClick(tile)}
+  > 37 │           >
+       │           ^
+    38 │             {/* Tile Highlighter */}
+    39 │             <div className={`w-full h-full rounded-full transition-colors ${isSelected ? 'bg-yellow-500/50' : isValidMove ? 'bg-green-500/40' : 'group-hover:bg-white/20'}`} />
+
+  i Actions triggered using mouse events should have corresponding keyboard events to account for keyboard-only navigation.
+
+
+cheduk-frontend/src/components/Board.tsx format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+
+     1    │ - import·{·tileCoordinates·}·from·'@cheduk/geometry-hex';
+     2    │ - import·PieceComponent·from·'./Piece';
+     3    │ - import·{·useGameStore·}·from·'../store/gameStore';·//·Import·Zustand·store
+        1 │ + import·{·tileCoordinates·}·from·"@cheduk/geometry-hex";
+        2 │ + import·PieceComponent·from·"./Piece";
+        3 │ + import·{·useGameStore·}·from·"../store/gameStore";·//·Import·Zustand·store
+     4  4 │
+     5    │ - const·Board·=·()·=>·{·//·No·props·needed·for·game·state
+        5 │ + const·Board·=·()·=>·{
+        6 │ + ··//·No·props·needed·for·game·state
+     6  7 │     // Use Zustand store to get state and actions
+     7  8 │     const board = useGameStore((state) => state.gameState.board);
+    ····· │
+    11 12 │
+    12 13 │     return (
+    13    │ - ····<div·
+       14 │ + ····<div
+    14 15 │         className="relative bg-contain bg-no-repeat bg-center w-full max-w-5xl mx-auto aspect-square"
+    15    │ - ······style={{·backgroundImage:·'url(/board.svg)'·}}
+       16 │ + ······style={{·backgroundImage:·"url(/board.svg)"·}}
+    16 17 │       >
+    17 18 │         {/* Interactive Layer */}
+    ····· │
+    21 22 │           if (!pixelCoords) return null;
+    22 23 │
+    23    │ - ········const·isSelected·=·selectedTile?.q·===·tile.q·&&·selectedTile?.r·===·tile.r;
+    24    │ - ········const·isValidMove·=·validMoves.some(move·=>·move.q·===·tile.q·&&·move.r·===·tile.r);
+       24 │ + ········const·isSelected·=
+       25 │ + ··········selectedTile?.q·===·tile.q·&&·selectedTile?.r·===·tile.r;
+       26 │ + ········const·isValidMove·=·validMoves.some(
+       27 │ + ··········(move)·=>·move.q·===·tile.q·&&·move.r·===·tile.r,
+       28 │ + ········);
+    25 29 │
+    26 30 │           return (
+    ····· │
+    29 33 │               className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group"
+    30 34 │               style={{
+    31    │ - ··············left:·`${pixelCoords.x·/·2048·*·100}%`,
+    32    │ - ··············top:·`${pixelCoords.y·/·2048·*·100}%`,
+    33    │ - ··············width:·'48px',
+    34    │ - ··············height:·'48px',
+       35 │ + ··············left:·`${(pixelCoords.x·/·2048)·*·100}%`,
+       36 │ + ··············top:·`${(pixelCoords.y·/·2048)·*·100}%`,
+       37 │ + ··············width:·"48px",
+       38 │ + ··············height:·"48px",
+    35 39 │               }}
+    36 40 │               onClick={() => onTileClick(tile)}
+    37 41 │             >
+    38 42 │               {/* Tile Highlighter */}
+    39    │ - ············<div·className={`w-full·h-full·rounded-full·transition-colors·${isSelected·?·'bg-yellow-500/50'·:·isValidMove·?·'bg-green-500/40'·:·'group-hover:bg-white/20'}`}·/>
+       43 │ + ············<div
+       44 │ + ··············className={`w-full·h-full·rounded-full·transition-colors·${isSelected·?·"bg-yellow-500/50"·:·isValidMove·?·"bg-green-500/40"·:·"group-hover:bg-white/20"}`}
+       45 │ + ············/>
+    40 46 │
+    41 47 │               {/* Piece Component */}
+    42 48 │               {tile.piece && (
+    43    │ - ··············<div·className='absolute·top-0·left-0·w-full·h-full·flex·items-center·justify-center'>
+       49 │ + ··············<div·className="absolute·top-0·left-0·w-full·h-full·flex·items-center·justify-center">
+    44 50 │                   <PieceComponent piece={tile.piece} />
+    45 51 │                 </div>
+
+
+cheduk-frontend/src/components/GameInfo.tsx:1:1 assist/source/organizeImports  FIXABLE  ━━━━━━━━━━━━
+
+  × The imports and exports are not sorted.
+
+  > 1 │ import type { Player, Piece } from '@cheduk/core-logic'; // Keep Player and Piece types
+      │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    2 │ import { useGameStore } from '../store/gameStore'; // Import Zustand store
+    3 │
+
+  i Safe fix: Organize Imports (Biome)
+
+     1    │ - import·type·{·Player,·Piece·}·from·'@cheduk/core-logic';·//·Keep·Player·and·Piece·types
+        1 │ + import·type·{·Piece,·Player·}·from·'@cheduk/core-logic';·//·Keep·Player·and·Piece·types
+     2  2 │   import { useGameStore } from '../store/gameStore'; // Import Zustand store
+     3  3 │
+
+
+cheduk-frontend/src/components/GameInfo.tsx format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+
+     1    │ - import·type·{·Player,·Piece·}·from·'@cheduk/core-logic';·//·Keep·Player·and·Piece·types
+     2    │ - import·{·useGameStore·}·from·'../store/gameStore';·//·Import·Zustand·store
+        1 │ + import·type·{·Player,·Piece·}·from·"@cheduk/core-logic";·//·Keep·Player·and·Piece·types
+        2 │ + import·{·useGameStore·}·from·"../store/gameStore";·//·Import·Zustand·store
+     3  3 │
+     4    │ - const·GameInfo·=·()·=>·{·//·No·props·needed·for·game·state
+        4 │ + const·GameInfo·=·()·=>·{
+        5 │ + ··//·No·props·needed·for·game·state
+     5  6 │     // Get state from Zustand store
+     6  7 │     const currentPlayer = useGameStore((state) => state.gameState.currentPlayer);
+     7  8 │     const infoScores = useGameStore((state) => state.gameState.infoScores);
+     8    │ - ··const·capturedPieces·=·useGameStore((state)·=>·state.gameState.capturedPieces);
+        9 │ + ··const·capturedPieces·=·useGameStore(
+       10 │ + ····(state)·=>·state.gameState.capturedPieces,
+       11 │ + ··);
+     9 12 │
+    10 13 │     const renderPlayerInfo = (player: Player) => {
+    11 14 │       const isCurrent = currentPlayer === player;
+    12    │ - ····const·textColor·=·player·===·'Red'·?·'text-red-400'·:·'text-blue-400';
+    13    │ - ····const·borderColor·=·player·===·'Red'·?·'border-red-500'·:·'border-blue-500';
+       15 │ + ····const·textColor·=·player·===·"Red"·?·"text-red-400"·:·"text-blue-400";
+       16 │ + ····const·borderColor·=·player·===·"Red"·?·"border-red-500"·:·"border-blue-500";
+    14 17 │
+    15 18 │       return (
+    16    │ - ······<div·key={player}·className={`p-3·rounded-lg·border-2·${isCurrent·?·borderColor·:·'border-transparent'}·transition-colors`}>
+       19 │ + ······<div
+       20 │ + ········key={player}
+       21 │ + ········className={`p-3·rounded-lg·border-2·${isCurrent·?·borderColor·:·"border-transparent"}·transition-colors`}
+       22 │ + ······>
+    17 23 │           <h3 className={`text-xl font-bold ${textColor}`}>{player}</h3>
+    18 24 │           <p>정보 점수: {infoScores[player]} / 5</p>
+    ····· │
+    20 26 │             <p className="font-semibold">잡은 기물:</p>
+    21 27 │             <div className="flex flex-wrap gap-1 mt-1 min-h-[2rem]">
+    22    │ - ············{capturedPieces[player].length·>·0·?·
+    23    │ - ··············capturedPieces[player].map((p:·Piece)·=>·p.type.charAt(0)).join(',·')·:·'(없음)'
+    24    │ - ············}
+       28 │ + ············{capturedPieces[player].length·>·0
+       29 │ + ··············?·capturedPieces[player]
+       30 │ + ··················.map((p:·Piece)·=>·p.type.charAt(0))
+       31 │ + ··················.join(",·")
+       32 │ + ··············:·"(없음)"}
+    25 33 │             </div>
+    26 34 │           </div>
+    27 35 │         </div>
+    28 36 │       );
+    29    │ - ··}
+       37 │ + ··};
+    30 38 │
+    31 39 │     return (
+    32 40 │       <div className="bg-gray-800 rounded-lg p-4 h-full shadow-inner">
+    33    │ - ······<h2·className="text-2xl·font-bold·mb-4·border-b·border-gray-600·pb-2">게임·정보</h2>
+    34    │ - ······
+       41 │ + ······<h2·className="text-2xl·font-bold·mb-4·border-b·border-gray-600·pb-2">
+       42 │ + ········게임·정보
+       43 │ + ······</h2>
+       44 │ +
+    35 45 │         <div className="mb-4">
+    36    │ - ········<h3·className="text-lg·font-semibold·text-orange-300">현재·턴:·<span·className={`${currentPlayer·===·'Red'·?·'text-red-400'·:·'text-blue-400'}`}>{currentPlayer}</span></h3>
+       46 │ + ········<h3·className="text-lg·font-semibold·text-orange-300">
+       47 │ + ··········현재·턴:{"·"}
+       48 │ + ··········<span
+       49 │ + ············className={`${currentPlayer·===·"Red"·?·"text-red-400"·:·"text-blue-400"}`}
+       50 │ + ··········>
+       51 │ + ············{currentPlayer}
+       52 │ + ··········</span>
+       53 │ + ········</h3>
+    37 54 │         </div>
+    38 55 │
+    39 56 │         <div className="space-y-4">
+    40    │ - ········{renderPlayerInfo('Red')}
+    41    │ - ········{renderPlayerInfo('Blue')}
+       57 │ + ········{renderPlayerInfo("Red")}
+       58 │ + ········{renderPlayerInfo("Blue")}
+    42 59 │         </div>
+    43 60 │       </div>
+    44 61 │     );
+    45 62 │   };
+    46    │ - export·default·GameInfo;
+       63 │ + export·default·GameInfo;
+       64 │ +
+
+
+cheduk-frontend/src/components/Piece.tsx format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+
+     1    │ - import·type·{·Piece·}·from·'@cheduk/core-logic';
+        1 │ + import·type·{·Piece·}·from·"@cheduk/core-logic";
+     2  2 │
+     3  3 │   interface PieceProps {
+    ····· │
+     5  5 │   }
+     6  6 │
+     7    │ - const·pieceLabelMap:·Record<Piece['type'],·string>·=·{
+     8    │ - ··Chief:·'수',
+     9    │ - ··Diplomat:·'외',
+    10    │ - ··SpecialEnvoy:·'특',
+    11    │ - ··Ambassador:·'대',
+    12    │ - ··Spy:·'첩',
+    13    │ - ··Guard:·'경',
+        7 │ + const·pieceLabelMap:·Record<Piece["type"],·string>·=·{
+        8 │ + ··Chief:·"수",
+        9 │ + ··Diplomat:·"외",
+       10 │ + ··SpecialEnvoy:·"특",
+       11 │ + ··Ambassador:·"대",
+       12 │ + ··Spy:·"첩",
+       13 │ + ··Guard:·"경",
+    14 14 │   };
+    15 15 │
+    16 16 │   const PieceComponent = ({ piece }: PieceProps) => {
+    17    │ - ··const·bgColor·=·piece.player·===·'Red'·?·'bg-red-700'·:·'bg-blue-700';
+    18    │ - ··const·ringColor·=·piece.player·===·'Red'·?·'ring-red-400'·:·'ring-blue-400';
+       17 │ + ··const·bgColor·=·piece.player·===·"Red"·?·"bg-red-700"·:·"bg-blue-700";
+       18 │ + ··const·ringColor·=·piece.player·===·"Red"·?·"ring-red-400"·:·"ring-blue-400";
+    19 19 │
+    20 20 │     return (
+    21    │ - ····<div·
+    22    │ - ······className={`w-12·h-12·rounded-full·flex·items-center·justify-center·font-bold·text-lg·text-white·shadow-lg·ring-2·${bgColor}·${ringColor}`}>
+       21 │ + ····<div
+       22 │ + ······className={`w-12·h-12·rounded-full·flex·items-center·justify-center·font-bold·text-lg·text-white·shadow-lg·ring-2·${bgColor}·${ringColor}`}
+       23 │ + ····>
+    23 24 │         {pieceLabelMap[piece.type]}
+    24 25 │       </div>
+
+
+cheduk-frontend/src/index.css:8:4 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Tailwind-specific syntax is disabled.
+
+    7 │ body {
+  > 8 │   @apply bg-gray-900 text-white;
+      │    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    9 │ }
+
+  i Enable `tailwindDirectives` in the css parser options, or remove this if you are not using Tailwind CSS.
+
+
+cheduk-frontend/src/index.css:3:2 lint/suspicious/noUnknownAtRules ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Unexpected unknown at-rule: tailwind
+
+    1 │ @import "tailwindcss";
+    2 │
+  > 3 │ @tailwind base;
+      │  ^^^^^^^^
+    4 │ @tailwind components;
+    5 │ @tailwind utilities;
+
+  i tailwind is not a standard CSS at-rule, which may lead to unexpected styling results or failure to interpret the styles as intended.
+
+  i See MDN web docs for a known list of at-rules.
+
+  i To fix this issue, consider removing the unknown at-rule.
+
+
+cheduk-frontend/src/index.css:4:2 lint/suspicious/noUnknownAtRules ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Unexpected unknown at-rule: tailwind
+
+    3 │ @tailwind base;
+  > 4 │ @tailwind components;
+      │  ^^^^^^^^
+    5 │ @tailwind utilities;
+    6 │
+
+  i tailwind is not a standard CSS at-rule, which may lead to unexpected styling results or failure to interpret the styles as intended.
+
+  i See MDN web docs for a known list of at-rules.
+
+  i To fix this issue, consider removing the unknown at-rule.
+
+
+cheduk-frontend/src/index.css:5:2 lint/suspicious/noUnknownAtRules ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Unexpected unknown at-rule: tailwind
+
+    3 │ @tailwind base;
+    4 │ @tailwind components;
+  > 5 │ @tailwind utilities;
+      │  ^^^^^^^^
+    6 │
+    7 │ body {
+
+  i tailwind is not a standard CSS at-rule, which may lead to unexpected styling results or failure to interpret the styles as intended.
+
+  i See MDN web docs for a known list of at-rules.
+
+  i To fix this issue, consider removing the unknown at-rule.
+
+
+cheduk-frontend/src/index.css:8:4 parse ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Tailwind-specific syntax is disabled.
+
+    7 │ body {
+  > 8 │   @apply bg-gray-900 text-white;
+      │    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    9 │ }
+
+  i Enable `tailwindDirectives` in the css parser options, or remove this if you are not using Tailwind CSS.
+
+
+cheduk-frontend/src/index.css format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Code formatting aborted due to parsing errors. To format code with errors, enable the 'formatter.formatWithErrors' option.
+
+
+remix-app/package.json format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+
+    34 34 │       "vite-tsconfig-paths": "^5.1.4"
+    35 35 │     }
+    36    │ - }
+       36 │ + }
+       37 │ +
+
+
+remix-app/server.ts:1:1 assist/source/organizeImports  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × The imports and exports are not sorted.
+
+  > 1 │ import * as http from 'http';
+      │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    2 │ import { Server } from 'socket.io';
+    3 │ // Import from core-logic
+
+  i Safe fix: Organize Imports (Biome)
+
+     1    │ - import·*·as·http·from·'http';
+     2    │ - import·{·Server·}·from·'socket.io';
+     3    │ - //·Import·from·core-logic
+     4    │ - import·{·createInitialGameState,·movePiece,·getValidMoves·}·from·'@cheduk/core-logic';
+     5    │ - import·type·{·GameState,·Tile·}·from·'@cheduk/core-logic';
+        1 │ + import·type·{·GameState,·Tile·}·from·'@cheduk/core-logic';
+        2 │ + //·Import·from·core-logic
+        3 │ + import·{·createInitialGameState,·getValidMoves,·movePiece·}·from·'@cheduk/core-logic';
+        4 │ + import·*·as·http·from·'http';
+        5 │ + import·{·Server·}·from·'socket.io';
+     6  6 │
+     7  7 │   const PORT = process.env.PORT || 3001;
+
+
+remix-app/server.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+
+     1    │ - import·*·as·http·from·'http';
+     2    │ - import·{·Server·}·from·'socket.io';
+        1 │ + import·*·as·http·from·"http";
+        2 │ + import·{·Server·}·from·"socket.io";
+     3  3 │   // Import from core-logic
+     4    │ - import·{·createInitialGameState,·movePiece,·getValidMoves·}·from·'@cheduk/core-logic';
+     5    │ - import·type·{·GameState,·Tile·}·from·'@cheduk/core-logic';
+        4 │ + import·{
+        5 │ + ··createInitialGameState,
+        6 │ + ··movePiece,
+        7 │ + ··getValidMoves,
+        8 │ + }·from·"@cheduk/core-logic";
+        9 │ + import·type·{·GameState,·Tile·}·from·"@cheduk/core-logic";
+     6 10 │
+     7 11 │   const PORT = process.env.PORT || 3001;
+    ····· │
+    14 18 │     cors: {
+    15 19 │       origin: "*", // Allow all origins for now, refine later
+    16    │ - ····methods:·["GET",·"POST"]
+    17    │ - ··}
+       20 │ + ····methods:·["GET",·"POST"],
+       21 │ + ··},
+    18 22 │   });
+    19 23 │
+    20    │ - io.on('connection',·(socket)·=>·{
+       24 │ + io.on("connection",·(socket)·=>·{
+    21 25 │     console.log(`User connected: ${socket.id}`);
+    22 26 │
+    23 27 │     // Send the current game state to the newly connected client
+    24    │ - ··socket.emit('game·state',·gameState);
+       28 │ + ··socket.emit("game·state",·gameState);
+    25 29 │
+    26    │ - ··socket.on('disconnect',·()·=>·{
+       30 │ + ··socket.on("disconnect",·()·=>·{
+    27 31 │       console.log(`User disconnected: ${socket.id}`);
+    28 32 │     });
+    29 33 │
+    30 34 │     // Listen for a 'game move' event
+    31    │ - ··socket.on('game·move',·(move:·{·from:·Tile;·to:·Tile·})·=>·{
+       35 │ + ··socket.on("game·move",·(move:·{·from:·Tile;·to:·Tile·})·=>·{
+    32 36 │       console.log(`Received game move from ${socket.id}:`, move);
+    33 37 │
+    ····· │
+    35 39 │       const piece = gameState.board[move.from.q][move.from.r];
+    36 40 │       if (!piece) {
+    37    │ - ······socket.emit('invalid·move',·{·error:·'No·piece·at·the·source·tile.'·});
+       41 │ + ······socket.emit("invalid·move",·{·error:·"No·piece·at·the·source·tile."·});
+    38 42 │         return;
+    39 43 │       }
+    40 44 │
+    41 45 │       const validMoves = getValidMoves(gameState, move.from);
+    42    │ - ····const·isMoveValid·=·validMoves.some(validMove·=>·validMove.q·===·move.to.q·&&·validMove.r·===·move.to.r);
+       46 │ + ····const·isMoveValid·=·validMoves.some(
+       47 │ + ······(validMove)·=>·validMove.q·===·move.to.q·&&·validMove.r·===·move.to.r,
+       48 │ + ····);
+    43 49 │
+    44 50 │       if (isMoveValid) {
+    ····· │
+    48 54 │
+    49 55 │         // 3. Broadcast the new game state to all clients
+    50    │ - ······io.emit('game·state',·gameState);
+    51    │ - ······console.log('Move·was·valid.·New·game·state·broadcasted.');
+    52    │ -
+       56 │ + ······io.emit("game·state",·gameState);
+       57 │ + ······console.log("Move·was·valid.·New·game·state·broadcasted.");
+    53 58 │       } else {
+    54 59 │         // 4. If invalid, notify the sender
+    55    │ - ······console.log('Move·was·invalid.');
+    56    │ - ······socket.emit('invalid·move',·{·error:·'The·attempted·move·is·not·valid.'·});
+       60 │ + ······console.log("Move·was·invalid.");
+       61 │ + ······socket.emit("invalid·move",·{
+       62 │ + ········error:·"The·attempted·move·is·not·valid.",
+       63 │ + ······});
+    57 64 │       }
+    58 65 │     });
+    59 66 │
+    60 67 │     // Add a way to reset the game for testing
+    61    │ - ··socket.on('reset·game',·()·=>·{
+    62    │ - ····console.log('Game·reset·requested.');
+       68 │ + ··socket.on("reset·game",·()·=>·{
+       69 │ + ····console.log("Game·reset·requested.");
+    63 70 │       gameState = createInitialGameState();
+    64    │ - ····io.emit('game·state',·gameState);
+    65    │ - ····console.log('Game·has·been·reset.·New·state·broadcasted.');
+       71 │ + ····io.emit("game·state",·gameState);
+       72 │ + ····console.log("Game·has·been·reset.·New·state·broadcasted.");
+    66 73 │     });
+    67 74 │   });
+    ····· │
+    71 78 │   });
+    72 79 │
+    73    │ - console.log("Socket.IO·server·starting...");
+       80 │ + console.log("Socket.IO·server·starting...");
+       81 │ +
+
+
+check ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Some errors were emitted while running checks.
+
+
+The number of diagnostics exceeds the limit allowed. Use --max-diagnostics to increase it.
+Diagnostics not shown: 34.
+Checked 38 files in 19ms. No fixes applied.
+Found 44 errors.
+Found 8 warnings.
+Found 2 infos.
+Error: Process completed with exit code 1.

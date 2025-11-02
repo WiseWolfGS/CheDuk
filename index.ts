@@ -1,5 +1,5 @@
-import { GameState, Piece, HexCoord, Player, PieceType } from './types';
-import { tileCoordinates } from '@cheduk/geometry-hex';
+import { GameState, Piece, HexCoord, Player, PieceType } from "./types";
+import { tileCoordinates } from "@cheduk/geometry-hex";
 
 // Helper to convert HexCoord to a string key
 const coordToString = (coord: HexCoord): string => `${coord.q},${coord.r}`;
@@ -7,13 +7,13 @@ const coordToString = (coord: HexCoord): string => `${coord.q},${coord.r}`;
 export function createInitialGameState(): GameState {
   const board = new Map<string, Piece>();
 
-  const initialPieces: Omit<Piece, 'id'>[] = [
+  const initialPieces: Omit<Piece, "id">[] = [
     // Red Team
-    { type: 'Commander', player: 'Red', position: { q: 0, r: 0, s: 0 } },
-    { type: 'Guard', player: 'Red', position: { q: 1, r: 0, s: -1 } },
+    { type: "Commander", player: "Red", position: { q: 0, r: 0, s: 0 } },
+    { type: "Guard", player: "Red", position: { q: 1, r: 0, s: -1 } },
     // Blue Team
-    { type: 'Commander', player: 'Blue', position: { q: 10, r: 11, s: -21 } },
-    { type: 'Guard', player: 'Blue', position: { q: 9, r: 11, s: -20 } },
+    { type: "Commander", player: "Blue", position: { q: 10, r: 11, s: -21 } },
+    { type: "Guard", player: "Blue", position: { q: 9, r: 11, s: -20 } },
     // Add other pieces based on the rulebook...
   ];
 
@@ -27,7 +27,7 @@ export function createInitialGameState(): GameState {
 
   return {
     board,
-    currentPlayer: 'Red',
+    currentPlayer: "Red",
     turn: 1,
     spyIntel: { Red: 0, Blue: 0 },
     capturedPieces: { Red: [], Blue: [] },
@@ -36,24 +36,32 @@ export function createInitialGameState(): GameState {
 
 // Directions for flat-top hex grid with odd-r offset
 const even_r_directions = [
-    [+1,  0], [ 0, -1], [-1, -1],
-    [-1,  0], [-1, +1], [ 0, +1],
+  [+1, 0],
+  [0, -1],
+  [-1, -1],
+  [-1, 0],
+  [-1, +1],
+  [0, +1],
 ];
 
 const odd_r_directions = [
-    [+1,  0], [+1, -1], [ 0, -1],
-    [-1,  0], [ 0, +1], [+1, +1],
+  [+1, 0],
+  [+1, -1],
+  [0, -1],
+  [-1, 0],
+  [0, +1],
+  [+1, +1],
 ];
 
 function getNeighbors(coord: HexCoord): HexCoord[] {
-    const isOdd = coord.r % 2 !== 0;
-    const directions = isOdd ? odd_r_directions : even_r_directions;
+  const isOdd = coord.r % 2 !== 0;
+  const directions = isOdd ? odd_r_directions : even_r_directions;
 
-    return directions.map(dir => {
-        const newQ = coord.q + dir[0];
-        const newR = coord.r + dir[1];
-        return { q: newQ, r: newR, s: -newQ - newR };
-    });
+  return directions.map((dir) => {
+    const newQ = coord.q + dir[0];
+    const newR = coord.r + dir[1];
+    return { q: newQ, r: newR, s: -newQ - newR };
+  });
 }
 
 export function getValidMoves(gameState: GameState, piece: Piece): HexCoord[] {
@@ -62,17 +70,17 @@ export function getValidMoves(gameState: GameState, piece: Piece): HexCoord[] {
   let moves: HexCoord[] = [];
 
   switch (type) {
-    case 'Commander':
-    case 'Guard': {
+    case "Commander":
+    case "Guard": {
       moves = getNeighbors(position);
       // **THE FIX**: Filter out moves that are off the board
-      moves = moves.filter(move => {
+      moves = moves.filter((move) => {
         const key = coordToString(move);
         return key in tileCoordinates;
       });
 
       // Filter out moves to squares occupied by friendly pieces
-      moves = moves.filter(move => {
+      moves = moves.filter((move) => {
         const key = coordToString(move);
         const destinationPiece = board.get(key);
         return !destinationPiece || destinationPiece.player !== player;
@@ -86,7 +94,11 @@ export function getValidMoves(gameState: GameState, piece: Piece): HexCoord[] {
   return moves;
 }
 
-export function movePiece(gameState: GameState, piece: Piece, newPosition: HexCoord): GameState {
+export function movePiece(
+  gameState: GameState,
+  piece: Piece,
+  newPosition: HexCoord,
+): GameState {
   const newBoard = new Map(gameState.board);
   const oldKey = coordToString(piece.position);
 
@@ -99,7 +111,7 @@ export function movePiece(gameState: GameState, piece: Piece, newPosition: HexCo
   return {
     ...gameState,
     board: newBoard,
-    currentPlayer: gameState.currentPlayer === 'Red' ? 'Blue' : 'Red',
+    currentPlayer: gameState.currentPlayer === "Red" ? "Blue" : "Red",
     turn: gameState.turn + 1,
   };
 }

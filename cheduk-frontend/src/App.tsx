@@ -1,5 +1,5 @@
-import GamePage from './pages/GamePage';
-import { useGameStore } from './store/gameStore'; // Import Zustand store
+import GamePage from "./pages/GamePage";
+import { useGameStore } from "./store/gameStore"; // Import Zustand store
 
 function App() {
   // Use Zustand store to get state and actions
@@ -14,8 +14,8 @@ function App() {
         <h1 className="text-4xl font-bold text-orange-400">CheDuk (체둑)</h1>
       </header>
       <main className="w-full max-w-7xl mx-auto">
-        <GamePage 
-          gameState={gameState} 
+        <GamePage
+          gameState={gameState}
           selectedTile={selectedTile}
           validMoves={validMoves}
           onTileClick={handleTileClick}
@@ -26,4 +26,3 @@ function App() {
 }
 
 export default App;
-

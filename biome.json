@@ -1,6 +1,8 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.3.2/schema.json",
-  "ignore": ["**/*.css"],
+  "files": {
+    "includes": ["**/*", "!**/*.css"]
+  },
   "linter": {
     "enabled": true,
     "rules": {

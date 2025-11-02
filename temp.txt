@@ -3,23 +3,35 @@ Run pnpm exec biome check .
   shell: /usr/bin/bash -e {0}
   env:
     PNPM_HOME: /home/runner/setup-pnpm/node_modules/.bin
-/home/runner/work/CheDuk/CheDuk/biome.json:4:5 deserialize ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+/home/runner/work/CheDuk/CheDuk/biome.json:3:3 deserialize ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   × Found an unknown key `ignore`.
 
+    1 │ {
     2 │   "$schema": "https://biomejs.dev/schemas/2.3.2/schema.json",
-    3 │   "files": {
-  > 4 │     "ignore": ["**/*.css"]
-      │     ^^^^^^^^
-    5 │   },
-    6 │   "linter": {
+  > 3 │   "ignore": ["**/*.css"],
+      │   ^^^^^^^^
+    4 │   "linter": {
+    5 │     "enabled": true,
 
   i Known keys:
 
-  - maxSize
-  - ignoreUnknown
-  - includes
-  - experimentalScannerIgnores
+  - $schema
+  - root
+  - extends
+  - vcs
+  - files
+  - formatter
+  - linter
+  - javascript
+  - json
+  - css
+  - graphql
+  - grit
+  - html
+  - overrides
+  - plugins
+  - assist
 
 
 configuration ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

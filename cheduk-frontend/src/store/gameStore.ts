@@ -9,11 +9,10 @@ import { create } from "zustand";
 interface GameStore {
   gameState: GameState;
   selectedTile: Tile | null;
-  validMoves: Tile[];
-
-  setSelectedTile: (tile: Tile | null) => void;
-  setValidMoves: (moves: Tile[]) => void;
-  handleTileClick: (clickedTile: Tile) => void;
+    validMoves: { q: number; r: number }[];
+    
+    setSelectedTile: (tile: Tile | null) => void;
+    setValidMoves: (moves: { q: number; r: number }[]) => void;  handleTileClick: (clickedTile: Tile) => void;
   resetGame: () => void;
 }
 

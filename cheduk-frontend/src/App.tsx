@@ -14,13 +14,7 @@ function App() {
         <h1 className="text-4xl font-bold text-orange-400">CheDuk (체둑)</h1>
       </header>
       <main className="w-full max-w-7xl mx-auto">
-        <GamePage
-          gameState={gameState}
-          selectedTile={selectedTile}
-          validMoves={validMoves}
-          onTileClick={handleTileClick}
-        />
-      </main>
+                    <GamePage />      </main>
     </div>
   );
 }

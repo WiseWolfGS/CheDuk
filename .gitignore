@@ -49,3 +49,4 @@ __pycache__/
 # Project specific files
 structure.txt
 docs/commands.md
+/temp.txt

@@ -1,12 +1,12 @@
-import * as http from 'node:http';
-import { Server } from "socket.io";
+import * as http from "node:http";
+import type { GameState, Tile } from "@cheduk/core-logic";
 // Import from core-logic
 import {
   createInitialGameState,
-  movePiece,
   getValidMoves,
+  movePiece,
 } from "@cheduk/core-logic";
-import type { GameState, Tile } from "@cheduk/core-logic";
+import { Server } from "socket.io";
 
 const PORT = process.env.PORT || 3001;
 

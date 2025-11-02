@@ -1,5 +1,5 @@
-import { GameState, Piece, HexCoord, Player, PieceType } from "./types";
 import { tileCoordinates } from "@cheduk/geometry-hex";
+import type { GameState, HexCoord, Piece } from "./types";
 
 // Helper to convert HexCoord to a string key
 const coordToString = (coord: HexCoord): string => `${coord.q},${coord.r}`;

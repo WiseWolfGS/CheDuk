@@ -1,10 +1,10 @@
-import { create } from "zustand";
+import type { GameState, Tile } from "@cheduk/core-logic";
 import {
   createInitialGameState,
-  movePiece,
   getValidMoves,
+  movePiece,
 } from "@cheduk/core-logic";
-import type { GameState, Tile } from "@cheduk/core-logic";
+import { create } from "zustand";
 
 interface GameStore {
   gameState: GameState;

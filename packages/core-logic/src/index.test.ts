@@ -1,6 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { createInitialGameState, getValidMoves, movePiece } from "./index";
-import type { GameState, Tile } from "./types";
+import { describe, expect, it } from "vitest";
+import { createInitialGameState, getValidMoves } from "./index";
 
 describe("CheDuk Core Logic", () => {
   describe("createInitialGameState", () => {

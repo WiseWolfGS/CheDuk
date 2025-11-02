@@ -1,6 +1,6 @@
 import { tileCoordinates } from "@cheduk/geometry-hex";
-import PieceComponent from "./Piece";
 import { useGameStore } from "../store/gameStore"; // Import Zustand store
+import PieceComponent from "./Piece";
 
 const Board = () => {
   // No props needed for game state
@@ -40,7 +40,7 @@ const Board = () => {
             }}
             onClick={() => onTileClick(tile)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
+              if (e.key === "Enter" || e.key === " ") {
                 onTileClick(tile);
               }
             }}

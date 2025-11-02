@@ -1,4 +1,4 @@
-import type { Player, Piece } from "@cheduk/core-logic"; // Keep Player and Piece types
+import type { Piece, Player } from "@cheduk/core-logic"; // Keep Player and Piece types
 import { useGameStore } from "../store/gameStore"; // Import Zustand store
 
 const GameInfo = () => {

@@ -1,6 +1,14 @@
 // Import all types from the types file
-import type { GameState, BoardState, Player, Piece, PieceType, Tile } from './types';
+
 import { COLS, ROWS } from "@cheduk/geometry-hex";
+import type {
+  BoardState,
+  GameState,
+  Piece,
+  PieceType,
+  Player,
+  Tile,
+} from "./types";
 
 // Re-export the types so other packages can use them.
 export type { GameState, BoardState, Player, Piece, PieceType, Tile };

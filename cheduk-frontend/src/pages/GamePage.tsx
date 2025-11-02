@@ -2,7 +2,6 @@ import Board from "../components/Board";
 import GameInfo from "../components/GameInfo";
 import { useGameStore } from "../store/gameStore"; // Import Zustand store
 
-
 const GamePage = () => {
   // No props needed for game state
   // Use Zustand store to get state and actions

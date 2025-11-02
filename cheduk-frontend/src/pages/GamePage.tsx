@@ -1,7 +1,7 @@
 import Board from "../components/Board";
 import GameInfo from "../components/GameInfo";
 import { useGameStore } from "../store/gameStore"; // Import Zustand store
-import type { GameState, Tile } from "@cheduk/core-logic"; // Keep types for Board/GameInfo props if needed
+
 
 const GamePage = () => {
   // No props needed for game state

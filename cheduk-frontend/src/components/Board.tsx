@@ -28,11 +28,10 @@ const Board = () => {
         );
 
         return (
-          <div
+          <button
             key={key}
-            role="button"
-            tabIndex={0}
-            className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group"
+            type="button"
+            className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group bg-transparent border-none p-0"
             style={{
               left: `${(pixelCoords.x / 2048) * 100}%`,
               top: `${(pixelCoords.y / 2048) * 100}%`,
@@ -57,7 +56,7 @@ const Board = () => {
                 <PieceComponent piece={tile.piece} />
               </div>
             )}
-          </div>
+          </button>
         );
       })}
     </div>

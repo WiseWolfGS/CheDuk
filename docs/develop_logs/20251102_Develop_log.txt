@@ -36,7 +36,12 @@
     *   **Biome 설정 파일(biome.json)의 파일 무시(ignore) 설정 문제:**
         *   `files.ignore` 및 최상위 `ignore` 키가 `Biome` CLI 버전에서 인식되지 않는 문제 발생.
         *   웹 검색 및 공식 문서 재확인을 통해, `files.includes` 배열 내에 부정 패턴(`!**/*.css`)을 사용하여 특정 파일을 검사에서 제외하는 것이 올바른 방법임을 확인하고 적용.
-*   **수동 오류 수정:** 자동 수정으로 해결되지 않은 나머지 린트 및 접근성 관련 오류들을 수동으로 수정하여 CI 통과 준비를 완료.
+        *   `.pnpm-store` 디렉토리가 계속 검사되는 문제를 해결하기 위해, `files.includes`에 `!.pnpm-store/` 패턴을 추가했으나 실패.
+        *   최종적으로 `files.includes`에 검사할 소스 코드 디렉토리(`cheduk-frontend/`, `packages/`, `remix-app/`)를 명시적으로 지정하는 화이트리스트 방식으로 변경하여 `.pnpm-store` 검사 문제를 해결.
+*   **프론트엔드 빌드 오류 수정:**
+    *   `Zustand` 리팩토링 과정에서 `App.tsx`와 `GamePage.tsx`가 불필요하게 스토어에서 상태를 가져와 `noUnusedVariables` 린트 오류 및 빌드 오류 발생.
+    *   `App.tsx`와 `GamePage.tsx`를 단순 레이아웃 컴포넌트로 되돌리고, `gameStore.ts`의 `validMoves` 타입 불일치 문제를 수정하여 빌드 오류 해결.
+*   **기타:** `temp.txt` 파일이 실수로 커밋되는 것을 방지하기 위해 `.gitignore`에 추가하고 Git 추적에서 제거.
 
 ---
 

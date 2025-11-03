@@ -49,8 +49,8 @@ pnpm install
 ```bash
 pnpm run dev
 ```
-- `cheduk-frontend`: http://localhost:5173 (Vite 기본 포트)
-- `remix-app`: 포트 충돌 시 http://localhost:5174 등 다른 포트로 자동 할당될 수 있습니다.
+- `cheduk-frontend`: http://localhost:3000 (Vite 기본 포트)
+- `remix-app`: 포트 충돌 시 http://localhost:5173 등 다른 포트로 자동 할당될 수 있습니다.
 
 ### 3. 프로덕션 빌드 및 실행 (Docker)
 다음 명령어로 전체 프로젝트의 프로덕션 이미지를 빌드하고 컨테이너를 실행할 수 있습니다.

@@ -68,21 +68,37 @@ export const createInitialGameState = (): GameState => {
   };
 };
 
-const getNeighbors = (q: number, r: number): { q: number; r: number }[] => {
-  const isOddRow = r % 2 !== 0;
-  const directions = [
-    // Common directions
-    { q: 1, r: 0 },
-    { q: -1, r: 0 },
-    { q: 0, r: 1 },
-    { q: 0, r: -1 },
-    // Directions that change based on row parity for pointy-top, odd-r layout
-    isOddRow ? { q: 1, r: 1 } : { q: -1, r: 1 },
-    isOddRow ? { q: 1, r: -1 } : { q: -1, r: -1 },
-  ];
+// --- Accurate Hex Grid Movement Logic (Pointy-Top, Odd-R) ---
 
-  return directions.map((dir) => ({ q: q + dir.q, r: r + dir.r }));
-};
+const DIRECTIONS = {
+  E: "E",
+  W: "W",
+  NE: "NE",
+  NW: "NW",
+  SE: "SE",
+  SW: "SW",
+} as const;
+
+type Direction = (typeof DIRECTIONS)[keyof typeof DIRECTIONS];
+
+const ALL_DIRECTIONS = Object.values(DIRECTIONS);
+
+function getNextTileInDirection(
+  q: number,
+  r: number,
+  dir: Direction,
+): { q: number; r: number } {
+  const isOdd = r % 2 !== 0;
+  switch (dir) {
+    case DIRECTIONS.E: return { q: q + 1, r };
+    case DIRECTIONS.W: return { q: q - 1, r };
+    case DIRECTIONS.NE: return isOdd ? { q: q + 1, r: r - 1 } : { q, r: r - 1 };
+    case DIRECTIONS.NW: return isOdd ? { q, r: r - 1 } : { q: q - 1, r: r - 1 };
+    case DIRECTIONS.SE: return isOdd ? { q: q + 1, r: r + 1 } : { q, r: r + 1 };
+    case DIRECTIONS.SW: return isOdd ? { q, r: r + 1 } : { q: q - 1, r: r + 1 };
+    default: return { q, r };
+  }
+}
 
 // Helper to get direction vector for a given angle and row parity (pointy-top, odd-r)
 const getDirectionVector = (
@@ -120,9 +136,39 @@ export const getValidMoves = (
   const isOddRow = r % 2 !== 0;
 
   switch (piece.type) {
-    case "Chief":
+    case "Chief": {
+      moves = ALL_DIRECTIONS.map(dir => getNextTileInDirection(q, r, dir));
+      break;
+    }
     case "Guard": {
-      moves = getNeighbors(q, r);
+      for (const dir of ALL_DIRECTIONS) {
+        let tempPos = { q, r };
+        tempPos = getNextTileInDirection(tempPos.q, tempPos.r, dir);
+        tempPos = getNextTileInDirection(tempPos.q, tempPos.r, dir);
+        moves.push(tempPos);
+      }
+      break;
+    }
+    case "Diplomat": {
+      for (const dir of ALL_DIRECTIONS) {
+        let currentPos = { q, r };
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          currentPos = getNextTileInDirection(currentPos.q, currentPos.r, dir);
+          const key = `${currentPos.q},${currentPos.r}`;
+          const nextTile = board[key];
+
+          if (!nextTile) break; // Off board
+
+          if (nextTile.piece) {
+            if (nextTile.piece.player !== piece.player) {
+              moves.push(currentPos); // Capture
+            }
+            break; // Blocked
+          }
+          moves.push(currentPos); // Empty tile
+        }
+      }
       break;
     }
     case "Spy": {
@@ -143,9 +189,7 @@ export const getValidMoves = (
   // Filter out invalid moves
   return moves.filter((move) => {
     const key = `${move.q},${move.r}`;
-    // Check if the tile exists on the board
     if (!board[key]) return false;
-    // Check if the tile is occupied by a friendly piece
     const destinationPiece = board[key].piece;
     return !destinationPiece || destinationPiece.player !== piece.player;
   });
@@ -163,11 +207,9 @@ export const movePiece = (
 
   const movingPiece = board[fromKey]?.piece;
   if (!movingPiece || movingPiece.player !== currentPlayer) {
-    // Trying to move an empty tile or opponent's piece
     return gameState;
   }
 
-  // Deep copy of the board to avoid mutation
   const newBoard = JSON.parse(JSON.stringify(board));
   const newCapturedPieces = JSON.parse(JSON.stringify(capturedPieces));
 
@@ -176,7 +218,6 @@ export const movePiece = (
     newCapturedPieces[currentPlayer].push(destinationTile.piece);
   }
 
-  // Move the piece
   destinationTile.piece = movingPiece;
   newBoard[fromKey].piece = null;
 

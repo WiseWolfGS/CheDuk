@@ -33,19 +33,35 @@ io.on("connection", (socket) => {
 
   // Listen for a 'game move' event
   socket.on("game move", (move: { from: Tile; to: Tile }) => {
-    console.log(`Received game move from ${socket.id}:`, move);
+    console.log(`[DEBUG] Received 'game move' from ${socket.id}:`, move);
+
+    const pieceOnBoard = gameState.board[`${move.from.q},${move.from.r}`]?.piece;
 
     // 1. Validate the move using core-logic
-    const piece = gameState.board[move.from.q][move.from.r];
-    if (!piece) {
-      socket.emit("invalid move", { error: "No piece at the source tile." });
+    if (!pieceOnBoard) {
+      const error = "No piece at the source tile.";
+      console.error(`[DEBUG] Invalid move: ${error}`);
+      socket.emit("invalid move", { error });
       return;
     }
 
-    const validMoves = getValidMoves(gameState, move.from);
+    if (pieceOnBoard.player !== gameState.currentPlayer) {
+      const error = `Not the current player's turn. Current: ${gameState.currentPlayer}`;
+      console.error(`[DEBUG] Invalid move: ${error}`);
+      socket.emit("invalid move", { error });
+      return;
+    }
+
+    const validMoves = getValidMoves(gameState.board, move.from.q, move.from.r);
     const isMoveValid = validMoves.some(
       (validMove) => validMove.q === move.to.q && validMove.r === move.to.r,
     );
+
+    console.log("[DEBUG] Server-side validation:");
+    console.log("  - Piece:", pieceOnBoard.type, pieceOnBoard.player);
+    console.log("  - Current Player:", gameState.currentPlayer);
+    console.log("  - Valid Moves Calculated:", validMoves);
+    console.log("  - Is Move Valid:", isMoveValid);
 
     if (isMoveValid) {
       // 2. If valid, update the game state
@@ -54,12 +70,13 @@ io.on("connection", (socket) => {
 
       // 3. Broadcast the new game state to all clients
       io.emit("game state", gameState);
-      console.log("Move was valid. New game state broadcasted.");
+      console.log("[DEBUG] Move was valid. New game state broadcasted.");
     } else {
       // 4. If invalid, notify the sender
-      console.log("Move was invalid.");
+      const error = "The attempted move is not in the list of valid moves.";
+      console.error(`[DEBUG] Invalid move: ${error}`);
       socket.emit("invalid move", {
-        error: "The attempted move is not valid.",
+        error,
       });
     }
   });

@@ -1,16 +1,15 @@
 import type { GameState, Tile } from "@cheduk/core-logic";
-import {
-  createInitialGameState,
-  getValidMoves,
-  movePiece,
-} from "@cheduk/core-logic";
+import { createInitialGameState, getValidMoves } from "@cheduk/core-logic";
 import { create } from "zustand";
+import { io, type Socket } from "socket.io-client";
 
 interface GameStore {
   gameState: GameState;
   selectedTile: Tile | null;
   validMoves: { q: number; r: number }[];
+  socket: Socket | null;
 
+  initSocket: () => void;
   setSelectedTile: (tile: Tile | null) => void;
   setValidMoves: (moves: { q: number; r: number }[]) => void;
   handleTileClick: (clickedTile: Tile) => void;
@@ -21,15 +20,39 @@ export const useGameStore = create<GameStore>((set, get) => ({
   gameState: createInitialGameState(),
   selectedTile: null,
   validMoves: [],
+  socket: null,
+
+  initSocket: () => {
+    const socket = io("http://localhost:3001");
+    set({ socket });
+
+    socket.on("connect", () => {
+      console.log("Socket connected:", socket.id);
+    });
+
+    socket.on("disconnect", () => {
+      console.log("Socket disconnected");
+    });
+
+    socket.on("game state", (newGameState: GameState) => {
+      set({ gameState: newGameState });
+    });
+
+    socket.on("invalid move", (data: { error: string }) => {
+      // You can implement a more user-friendly notification system
+      alert(`Invalid Move: ${data.error}`);
+    });
+  },
 
   setSelectedTile: (tile) => set({ selectedTile: tile }),
   setValidMoves: (moves) => set({ validMoves: moves }),
 
   handleTileClick: (clickedTile) => {
-    const { gameState, selectedTile, setSelectedTile, setValidMoves } = get();
+    const { gameState, selectedTile, socket, setSelectedTile, setValidMoves } =
+      get();
 
     if (selectedTile) {
-      // A piece is already selected, try to move it
+      // A piece is already selected, try to move it by emitting to server
       const isMoveValid = getValidMoves(
         gameState.board,
         selectedTile.q,
@@ -37,14 +60,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
       ).some((move) => move.q === clickedTile.q && move.r === clickedTile.r);
 
       if (isMoveValid) {
-        // Perform the move
-        const newGameState = movePiece(gameState, selectedTile, clickedTile);
-        set({ gameState: newGameState, selectedTile: null, validMoves: [] });
-      } else {
-        // Invalid move, deselect
-        setSelectedTile(null);
-        setValidMoves([]);
+        socket?.emit("game move", { from: selectedTile, to: clickedTile });
       }
+      // Deselect after attempting a move
+      setSelectedTile(null);
+      setValidMoves([]);
     } else {
       // No piece selected, try to select one
       const pieceAtClickedTile =
@@ -54,6 +74,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         pieceAtClickedTile.player === gameState.currentPlayer
       ) {
         setSelectedTile(clickedTile);
+        // Get valid moves locally for quick UI feedback
         const moves = getValidMoves(
           gameState.board,
           clickedTile.q,
@@ -68,10 +89,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
   },
 
-  resetGame: () =>
-    set({
-      gameState: createInitialGameState(),
-      selectedTile: null,
-      validMoves: [],
-    }),
+  resetGame: () => {
+    get().socket?.emit("reset game");
+  },
 }));

@@ -1,6 +1,14 @@
-import GamePage from './pages/GamePage';
+import { useEffect } from "react";
+import GamePage from "./pages/GamePage";
+import { useGameStore } from "./store/gameStore";
 
 function App() {
+  const initSocket = useGameStore((state) => state.initSocket);
+
+  useEffect(() => {
+    initSocket();
+  }, [initSocket]);
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-800">
       <header className="w-full max-w-7xl mx-auto mb-4">

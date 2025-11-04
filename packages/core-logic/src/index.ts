@@ -142,10 +142,30 @@ export const getValidMoves = (
     }
     case "Guard": {
       for (const dir of ALL_DIRECTIONS) {
-        let tempPos = { q, r };
-        tempPos = getNextTileInDirection(tempPos.q, tempPos.r, dir);
-        tempPos = getNextTileInDirection(tempPos.q, tempPos.r, dir);
-        moves.push(tempPos);
+        let currentPos = { q, r };
+        for (let i = 0; i < 2; i++) { // 1칸, 2칸 이동을 순차적으로 확인
+          currentPos = getNextTileInDirection(currentPos.q, currentPos.r, dir);
+          const key = `${currentPos.q},${currentPos.r}`;
+          const nextTile = board[key];
+
+          if (!nextTile) {
+            // 보드 밖이면 해당 방향 탐색 중단
+            break;
+          }
+
+          if (nextTile.piece) {
+            // 다른 기물이 있으면
+            if (nextTile.piece.player !== piece.player) {
+              // 적군이면 포획 가능
+              moves.push(currentPos);
+            }
+            // 아군이거나, 적군을 포획한 후에는 더 이상 그 방향으로 진행 불가
+            break;
+          }
+
+          // 기물이 없는 빈 칸이면 이동 가능
+          moves.push(currentPos);
+        }
       }
       break;
     }

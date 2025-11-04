@@ -57,6 +57,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         gameState.board,
         selectedTile.q,
         selectedTile.r,
+        gameState.embassyLocations,
       ).some((move) => move.q === clickedTile.q && move.r === clickedTile.r);
 
       if (isMoveValid) {
@@ -79,6 +80,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           gameState.board,
           clickedTile.q,
           clickedTile.r,
+          gameState.embassyLocations,
         );
         setValidMoves(moves);
       } else {

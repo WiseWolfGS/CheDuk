@@ -28,4 +28,5 @@ export interface GameState {
   infoScores: Record<Player, number>;
   capturedPieces: Record<Player, Piece[]>;
   turn: number;
+  embassyLocations: Record<Player, { q: number; r: number }>;
 }

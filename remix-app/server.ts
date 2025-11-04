@@ -52,7 +52,12 @@ io.on("connection", (socket) => {
       return;
     }
 
-    const validMoves = getValidMoves(gameState.board, move.from.q, move.from.r);
+    const validMoves = getValidMoves(
+      gameState.board,
+      move.from.q,
+      move.from.r,
+      gameState.embassyLocations,
+    );
     const isMoveValid = validMoves.some(
       (validMove) => validMove.q === move.to.q && validMove.r === move.to.r,
     );

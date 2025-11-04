@@ -65,6 +65,10 @@ export const createInitialGameState = (): GameState => {
     infoScores: { Red: 0, Blue: 0 },
     capturedPieces: { Red: [], Blue: [] },
     turn: 1,
+    embassyLocations: {
+      Blue: { q: 3, r: 6 },
+      Red: { q: 7, r: 5 },
+    },
   };
 };
 
@@ -127,6 +131,7 @@ export const getValidMoves = (
   board: BoardState,
   q: number,
   r: number,
+  embassyLocations: GameState["embassyLocations"],
 ): { q: number; r: number }[] => {
   const tile = board[`${q},${r}`];
   if (!tile || !tile.piece) return [];
@@ -201,6 +206,82 @@ export const getValidMoves = (
         const { dq, dr } = getDirectionVector(angle, isOddRow);
         return { q: q + dq, r: r + dr };
       });
+      break;
+    }
+    case "SpecialEnvoy": {
+      for (const dir of ALL_DIRECTIONS) {
+        let currentPos = { q, r };
+        let jumpedOverPiece = false;
+
+        // 1. Find the first piece to jump over
+        let jumpFromPos = { q, r };
+        let jumpedPieceTile: Tile | null = null;
+
+        while (true) {
+          jumpFromPos = getNextTileInDirection(jumpFromPos.q, jumpFromPos.r, dir);
+          const key = `${jumpFromPos.q},${jumpFromPos.r}`;
+          const tile = board[key];
+
+          if (!tile) break; // Off board
+
+          if (tile.piece) {
+            jumpedPieceTile = tile;
+            break;
+          }
+        }
+
+        if (!jumpedPieceTile || jumpedPieceTile.piece?.type === "SpecialEnvoy") {
+          continue; // Cannot jump over nothing or another SpecialEnvoy
+        }
+
+        // 2. Find valid moves after the jump
+        currentPos = { q: jumpedPieceTile.q, r: jumpedPieceTile.r };
+        while (true) {
+          currentPos = getNextTileInDirection(currentPos.q, currentPos.r, dir);
+          const key = `${currentPos.q},${currentPos.r}`;
+          const nextTile = board[key];
+
+          if (!nextTile) break; // Off board
+
+          if (nextTile.piece) {
+            if (
+              nextTile.piece.player !== piece.player &&
+              nextTile.piece.type !== "Ambassador" &&
+              nextTile.piece.type !== "SpecialEnvoy"
+            ) {
+              moves.push(currentPos); // Capture non-Ambassador enemy
+            }
+            break; // Blocked by friendly or enemy piece
+          }
+          moves.push(currentPos); // Empty tile
+        }
+      }
+      break;
+    }
+    case "Ambassador": {
+      const playerEmbassy = embassyLocations[piece.player];
+      const isAtEmbassy = playerEmbassy.q === q && playerEmbassy.r === r;
+
+      if (isAtEmbassy) {
+        // If at the embassy, perform a Knight-like jump move
+        const relativeOffsets = isOddRow
+          ? [
+              { dq: 0, dr: -2 },
+              { dq: 2, dr: -1 }, { dq: -1, dr: -1 },
+              { dq: 2, dr: 1 }, { dq: -1, dr: 1 },
+              { dq: 0, dr: 2 },
+            ]
+          : [
+              { dq: 1, dr: -2 }, { dq: 0, dr: -2 },
+              { dq: 1, dr: -1 }, { dq: -2, dr: -1 },
+              { dq: -2, dr: 1 }, { dq: 1, dr: 1 },
+              { dq: 0, dr: 2 },
+            ];
+        moves = relativeOffsets.map(offset => ({ q: q + offset.dq, r: r + offset.dr }));
+      } else {
+        // If outside, move 1 step in any direction (like a Chief)
+        moves = ALL_DIRECTIONS.map((dir) => getNextTileInDirection(q, r, dir));
+      }
       break;
     }
     // Other piece logic will be added here

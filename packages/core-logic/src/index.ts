@@ -211,7 +211,7 @@ export const getValidMoves = (
     case "SpecialEnvoy": {
       for (const dir of ALL_DIRECTIONS) {
         let currentPos = { q, r };
-        let jumpedOverPiece = false;
+        // let jumpedOverPiece = false;
 
         // 1. Find the first piece to jump over
         let jumpFromPos = { q, r };

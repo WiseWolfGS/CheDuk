@@ -1,6 +1,18 @@
 {
+  "references": [
+    { "path": "../geometry-hex" }
+  ],
   "compilerOptions": {
     "composite": true,
-    "noEmit": true
-  }
+    "noEmit": true,
+    "target": "es2022",
+    "lib": ["es2022", "DOM", "DOM.Iterable", "ESNext.Disposable"],
+    "moduleResolution": "bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@cheduk/geometry-hex": ["../geometry-hex/src/index.ts"]
+    },
+    "types": ["vitest/globals"]
+  },
+  "include": ["src"]
 }

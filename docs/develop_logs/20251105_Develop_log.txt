@@ -1,0 +1,29 @@
+# 2025년 11월 5일 개발 로그
+
+## 1. UI 개선: 대사관 칸 시각화
+
+*   게임 보드에서 각 진영의 '대사관' 칸을 시각적으로 구분할 수 있도록 연한 파란색 하이라이트(`bg-blue-300/30`)를 추가했습니다.
+*   `cheduk-frontend/src/components/Board.tsx` 파일을 수정하여 `gameState.embassyLocations` 정보를 활용, 해당 칸에 조건부 스타일을 적용했습니다.
+
+## 2. 승리 판정 로직 완성
+
+*   `packages/core-logic/src/types.ts`의 `GameState` 인터페이스에 `gameOver: boolean` 및 `winner: Player | null` 필드를 추가했습니다.
+*   `packages/core-logic/src/index.ts`의 `createInitialGameState` 함수에서 위 필드들을 초기화했습니다.
+*   **`checkVictory` 함수 구현:**
+    *   '수반 격파 승리' (상대 국가수반 포획 시) 로직을 구현했습니다.
+    *   '정보 승리' (정보 점수 5점 달성 시) 로직을 구현했습니다.
+*   **`movePiece` 함수 업데이트:**
+    *   '첩자'가 상대방 '대사관' 칸으로 이동하여 점령할 경우, 해당 플레이어의 정보 점수를 1점 증가시키는 로직을 추가했습니다.
+    *   기물 이동 후 `checkVictory` 함수를 호출하여 게임 종료 여부를 판정하고, 게임이 종료되면 `gameState`의 `gameOver` 및 `winner` 필드를 업데이트하도록 수정했습니다.
+
+## 3. 게임 종료 화면 및 재시작 기능 구현
+
+*   **`GameOverModal.tsx` 컴포넌트 생성:** 게임 종료 시 승자를 표시하고 '다시 플레이' 버튼을 제공하는 모달 컴포넌트를 `cheduk-frontend/src/components/GameOverModal.tsx` 경로에 생성했습니다.
+*   **`GamePage.tsx` 통합:** `cheduk-frontend/src/pages/GamePage.tsx` 파일에 `GameOverModal`을 임포트하고, `gameState.gameOver` 상태에 따라 조건부로 렌더링되도록 설정했습니다.
+*   '다시 플레이' 버튼은 `useGameStore`의 `resetGame` 함수와 연결되어 게임을 재시작할 수 있도록 했습니다.
+
+## 4. 요약 및 현재 상태
+
+*   게임의 핵심 UI 요소인 대사관 칸 시각화 및 승리 판정 로직이 완성되었습니다.
+*   게임 종료 시 사용자에게 승자를 알리고 재시작을 유도하는 프론트엔드 기능이 구현되었습니다.
+*   이로써 CheDuk 게임의 MVP 구현에 한 걸음 더 다가섰습니다.

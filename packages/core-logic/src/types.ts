@@ -29,4 +29,6 @@ export interface GameState {
   capturedPieces: Record<Player, Piece[]>;
   turn: number;
   embassyLocations: Record<Player, { q: number; r: number }>;
+  gameOver: boolean;
+  winner: Player | null;
 }

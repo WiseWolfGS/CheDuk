@@ -3,9 +3,11 @@ import { useGameStore } from "../store/gameStore"; // Import Zustand store
 import PieceComponent from "./Piece";
 
 const Board = () => {
-  // No props needed for game state
   // Use Zustand store to get state and actions
   const board = useGameStore((state) => state.gameState.board);
+  const embassyLocations = useGameStore(
+    (state) => state.gameState.embassyLocations,
+  );
   const selectedTile = useGameStore((state) => state.selectedTile);
   const validMoves = useGameStore((state) => state.validMoves);
   const onTileClick = useGameStore((state) => state.handleTileClick);
@@ -25,6 +27,9 @@ const Board = () => {
           selectedTile?.q === tile.q && selectedTile?.r === tile.r;
         const isValidMove = validMoves.some(
           (move) => move.q === tile.q && move.r === tile.r,
+        );
+        const isEmbassy = Object.values(embassyLocations).some(
+          (loc) => loc.q === tile.q && loc.r === tile.r,
         );
 
         return (
@@ -47,7 +52,15 @@ const Board = () => {
           >
             {/* Tile Highlighter */}
             <div
-              className={`w-full h-full rounded-full transition-colors ${isSelected ? "bg-yellow-500/50" : isValidMove ? "bg-green-500/40" : "group-hover:bg-white/20"}`}
+              className={`w-full h-full rounded-full transition-colors ${
+                isSelected
+                  ? "bg-yellow-500/50"
+                  : isValidMove
+                    ? "bg-green-500/40"
+                    : isEmbassy
+                      ? "bg-blue-300/30"
+                      : "group-hover:bg-white/20"
+              }`}
             />
 
             {/* Piece Component */}

@@ -69,6 +69,8 @@ export const createInitialGameState = (): GameState => {
       Blue: { q: 3, r: 6 },
       Red: { q: 7, r: 5 },
     },
+    gameOver: false,
+    winner: null,
   };
 };
 
@@ -296,12 +298,35 @@ export const getValidMoves = (
   });
 };
 
+export const checkVictory = (
+  gameState: GameState,
+): { gameOver: boolean; winner: Player | null } => {
+  const { capturedPieces, infoScores, currentPlayer } = gameState;
+
+  // Check for Information Victory first, as it can be triggered by a move
+  if (infoScores.Red >= 5) {
+    return { gameOver: true, winner: "Red" };
+  }
+  if (infoScores.Blue >= 5) {
+    return { gameOver: true, winner: "Blue" };
+  }
+
+  // Check for Chief Destruction Victory (the current player just captured)
+  if (capturedPieces[currentPlayer].some((p) => p.type === "Chief")) {
+    return { gameOver: true, winner: currentPlayer };
+  }
+
+  // No victory condition met
+  return { gameOver: false, winner: null };
+};
+
 export const movePiece = (
   gameState: GameState,
   from: { q: number; r: number },
   to: { q: number; r: number },
 ): GameState => {
-  const { board, currentPlayer, capturedPieces } = gameState;
+  const { board, currentPlayer, capturedPieces, infoScores, embassyLocations } =
+    gameState;
 
   const fromKey = `${from.q},${from.r}`;
   const toKey = `${to.q},${to.r}`;
@@ -313,6 +338,7 @@ export const movePiece = (
 
   const newBoard = JSON.parse(JSON.stringify(board));
   const newCapturedPieces = JSON.parse(JSON.stringify(capturedPieces));
+  const newInfoScores = JSON.parse(JSON.stringify(infoScores));
 
   const destinationTile = newBoard[toKey];
   if (destinationTile.piece) {
@@ -322,11 +348,43 @@ export const movePiece = (
   destinationTile.piece = movingPiece;
   newBoard[fromKey].piece = null;
 
-  return {
+  // Check for special events (like embassy capture)
+  const opponent = currentPlayer === "Red" ? "Blue" : "Red";
+  const opponentEmbassy = embassyLocations[opponent];
+  if (
+    movingPiece.type === "Spy" &&
+    to.q === opponentEmbassy.q &&
+    to.r === opponentEmbassy.r
+  ) {
+    newInfoScores[currentPlayer] += 1;
+  }
+
+  // Create a new state object with all updates
+  const updatedGameState: GameState = {
     ...gameState,
     board: newBoard,
     capturedPieces: newCapturedPieces,
-    currentPlayer: currentPlayer === "Red" ? "Blue" : "Red",
+    infoScores: newInfoScores,
+    currentPlayer, // Keep current player for victory check
+  };
+
+  // Check for victory
+  const victoryStatus = checkVictory(updatedGameState);
+
+  if (victoryStatus.gameOver) {
+    return {
+      ...updatedGameState,
+      gameOver: true,
+      winner: victoryStatus.winner,
+    };
+  }
+
+  // If no victory, switch player and continue
+  return {
+    ...updatedGameState,
+    currentPlayer: opponent,
     turn: gameState.turn + 1,
+    gameOver: false,
+    winner: null,
   };
 };

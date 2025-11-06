@@ -95,4 +95,120 @@ describe("core-logic movement", () => {
     expect(updated.infoScores.Blue).toBe(1);
     expect(updated.currentPlayer).toBe("Red");
   });
+
+  it("allows diplomats to slide until blocked", () => {
+    const state = createInitialGameState();
+    clearBoard(state);
+
+    const origin = { q: 5, r: 5 } satisfies HexCoord;
+    placePiece(state, origin, { id: "B_Diplomat", type: "Diplomat", player: "Blue" });
+    placePiece(state, { q: 7, r: 5 }, { id: "B_Blocker", type: "Spy", player: "Blue" });
+    placePiece(state, { q: 3, r: 5 }, { id: "R_Target", type: "Spy", player: "Red" });
+
+    const moves = getValidMoves(
+      state.board,
+      origin.q,
+      origin.r,
+      state.embassyLocations,
+      state,
+    );
+
+    expect(moves).toEqual(
+      expect.arrayContaining([
+        { q: 6, r: 5 },
+        { q: 4, r: 5 },
+        { q: 3, r: 5 },
+      ]),
+    );
+    expect(moves).not.toContainEqual({ q: 7, r: 5 });
+    expect(moves).not.toContainEqual({ q: 2, r: 5 });
+  });
+
+  it("requires special envoys to jump and forbids capturing ambassadors", () => {
+    const state = createInitialGameState();
+    clearBoard(state);
+
+    const origin = { q: 5, r: 5 } satisfies HexCoord;
+    placePiece(state, origin, { id: "B_Envoy", type: "SpecialEnvoy", player: "Blue" });
+    placePiece(state, { q: 6, r: 5 }, { id: "B_Screen", type: "Spy", player: "Blue" });
+
+    placePiece(state, { q: 7, r: 5 }, { id: "R_Guard", type: "Guard", player: "Red" });
+    placePiece(state, { q: 8, r: 5 }, { id: "R_Amb", type: "Ambassador", player: "Red" });
+
+    const moves = getValidMoves(
+      state.board,
+      origin.q,
+      origin.r,
+      state.embassyLocations,
+      state,
+    );
+
+    expect(moves).toContainEqual({ q: 7, r: 5 });
+    expect(moves).not.toContainEqual({ q: 8, r: 5 });
+    expect(moves).not.toContainEqual({ q: 6, r: 5 });
+  });
+
+  it("changes ambassador mobility when stationed at the embassy", () => {
+    const state = createInitialGameState();
+    clearBoard(state);
+
+    const embassy = state.embassyLocations.Blue;
+    placePiece(state, embassy, { id: "B_Amb", type: "Ambassador", player: "Blue" });
+    placePiece(state, { q: embassy.q + 1, r: embassy.r - 1 }, {
+      id: "B_Block",
+      type: "Spy",
+      player: "Blue",
+    });
+    placePiece(state, { q: embassy.q - 2, r: embassy.r - 1 }, {
+      id: "R_Target",
+      type: "Guard",
+      player: "Red",
+    });
+
+    const movesAtEmbassy = getValidMoves(
+      state.board,
+      embassy.q,
+      embassy.r,
+      state.embassyLocations,
+      state,
+    );
+
+    expect(movesAtEmbassy).toEqual(
+      expect.arrayContaining([
+        { q: embassy.q + 1, r: embassy.r - 2 },
+        { q: embassy.q, r: embassy.r - 2 },
+        { q: embassy.q - 2, r: embassy.r - 1 },
+        { q: embassy.q - 2, r: embassy.r + 1 },
+      ]),
+    );
+    expect(movesAtEmbassy).not.toContainEqual({
+      q: embassy.q + 1,
+      r: embassy.r - 1,
+    });
+
+    const fieldPost = { q: embassy.q + 2, r: embassy.r } satisfies HexCoord;
+    placePiece(state, fieldPost, { id: "B_Amb_Field", type: "Ambassador", player: "Blue" });
+
+    const fieldMoves = getValidMoves(
+      state.board,
+      fieldPost.q,
+      fieldPost.r,
+      state.embassyLocations,
+      state,
+    );
+
+    expect(fieldMoves).toEqual(
+      expect.arrayContaining([
+        { q: fieldPost.q + 1, r: fieldPost.r },
+        { q: fieldPost.q - 1, r: fieldPost.r },
+        { q: fieldPost.q, r: fieldPost.r - 1 },
+        { q: fieldPost.q, r: fieldPost.r + 1 },
+        { q: fieldPost.q - 1, r: fieldPost.r + 1 },
+      ]),
+    );
+    expect(fieldMoves).not.toContainEqual({
+      q: fieldPost.q + 1,
+      r: fieldPost.r + 2,
+    });
+  });
 });

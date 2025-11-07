@@ -1,13 +1,15 @@
-import { useEffect } from "react";
 import GamePage from "./pages/GamePage";
 import { useGameStore } from "./store/gameStore";
+import ActionChoiceModal from "./components/ActionChoiceModal";
 
 function App() {
-  const initSocket = useGameStore((state) => state.initSocket);
-
-  useEffect(() => {
-    initSocket();
-  }, [initSocket]);
+  const {
+    isActionModalOpen,
+    validActions,
+    handleAction,
+    cancelAction,
+    enterMoveMode,
+  } = useGameStore();
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-800">
@@ -17,6 +19,13 @@ function App() {
       <main className="w-full max-w-7xl mx-auto">
         <GamePage />
       </main>
+      <ActionChoiceModal
+        isOpen={isActionModalOpen}
+        actions={validActions}
+        onSelect={handleAction}
+        onSelectMove={enterMoveMode}
+        onCancel={cancelAction}
+      />
     </div>
   );
 }

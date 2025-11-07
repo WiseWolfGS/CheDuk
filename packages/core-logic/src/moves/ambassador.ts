@@ -3,7 +3,6 @@ import { ALL_DIRECTIONS, getTile, isFriendly, isInsideBoard, step } from "./util
 import type { MoveGenerator } from "./types";
 
 const EVEN_ROW_EMBASSY_OFFSETS: readonly HexCoord[] = [
-  { q: 1, r: -2 },
   { q: 0, r: -2 },
   { q: 1, r: -1 },
   { q: -2, r: -1 },

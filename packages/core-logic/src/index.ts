@@ -1,14 +1,14 @@
 import { COLS, ROWS } from "@cheduk/geometry-hex";
-import { isInsideBoard, step, getTile } from "./moves/utils";
+import { isInsideBoard, step, getTile, ALL_DIRECTIONS } from "./moves/utils";
 
 import type {
   BoardKey,
   BoardState,
   EmbassyMap,
+  GameAction,
   GameState,
   HexCoord,
   InfoScoreTrack,
-  MoveIntent,
   Piece,
   PieceCollection,
   PieceType,
@@ -19,7 +19,15 @@ import { toBoardKey } from "./types";
 import { MOVE_GENERATORS } from "./moves";
 import type { MoveGeneratorArgs } from "./moves";
 
-export type { GameState, BoardState, Player, Piece, PieceType, Tile } from "./types";
+export type {
+  GameState,
+  BoardState,
+  Player,
+  Piece,
+  PieceType,
+  Tile,
+  GameAction,
+} from "./types";
 
 const PLAYERS: readonly Player[] = ["Red", "Blue"];
 
@@ -169,14 +177,17 @@ export const createInitialGameState = (): GameState => {
   return {
     board,
     currentPlayer: "Red",
-    turn: 1,
+    turn: 0,
     infoScores: { Red: 0, Blue: 0 },
     capturedPieces: { Red: [], Blue: [] },
     embassyLocations,
     embassyFirstCapture: { Red: false, Blue: false },
     territories,
+    infoGatheredTiles: [],
+    spiesReadyToReturn: [],
     gameOver: false,
     winner: null,
+    returningSpies: [],
   };
 };
 
@@ -207,32 +218,70 @@ const createFallbackState = (
     embassyLocations,
     embassyFirstCapture: { Red: false, Blue: false },
     territories,
+    infoGatheredTiles: [],
+    spiesReadyToReturn: [],
     gameOver: false,
     winner: null,
+    returningSpies: [],
   };
 };
 
-export const getValidMoves = (
+export const getValidActions = (
   board: BoardState,
   q: number,
   r: number,
   embassyLocations: EmbassyMap,
   gameState?: GameState,
-): HexCoord[] => {
+): GameAction[] => {
   const key = toBoardKey({ q, r });
   const tile = board[key];
   if (!tile || !tile.piece) return [];
 
-  const state = gameState ?? createFallbackState(board, embassyLocations, tile.piece);
-  const generator = MOVE_GENERATORS[tile.piece.type];
+  const piece = tile.piece;
+  const state = gameState ?? createFallbackState(board, embassyLocations, piece);
 
-  if (!generator) return [];
+  // Generate move actions
+  const generator = MOVE_GENERATORS[piece.type];
+  const moveActions: GameAction[] = generator
+    ? generator(createMoveGeneratorArgs(board, { q, r }, state, piece))
+        .filter((move) => Boolean(board[toBoardKey(move)]))
+        .map((move) => ({ type: "move", from: { q, r }, to: move }))
+    : [];
 
-  const moves = generator(
-    createMoveGeneratorArgs(board, { q, r }, state, tile.piece),
-  );
+  const specialActions: GameAction[] = [];
+  if (piece.type === "Spy") {
+    const opponent = getOpponent(piece.player);
 
-  return moves.filter((move) => Boolean(board[toBoardKey(move)]));
+    // Generate gather info action if not already returning
+    const isReadyToReturn = state.spiesReadyToReturn.includes(piece.id);
+    if (!isReadyToReturn) {
+      const isInEnemyTerritory = state.territories[opponent].some(
+        (t) => t.q === q && t.r === r,
+      );
+      const hasBeenGathered = state.infoGatheredTiles.some(
+        (t) => t.q === q && t.r === r,
+      );
+
+      const isBlockedByGuard = ALL_DIRECTIONS.some((dir) => {
+        const neighbor = step({ q, r }, dir);
+        const neighborTile = getTile(state.board, neighbor);
+        return (
+          neighborTile?.piece?.type === "Guard" &&
+          neighborTile.piece.player === opponent
+        );
+      });
+
+      if (isInEnemyTerritory && !hasBeenGathered && !isBlockedByGuard) {
+        specialActions.push({
+          type: "gatherInfo",
+          at: { q, r },
+          pieceId: piece.id,
+        });
+      }
+    }
+  }
+
+  return [...moveActions, ...specialActions];
 };
 
 export const checkVictory = (
@@ -253,99 +302,170 @@ export const checkVictory = (
   return { gameOver: false, winner: null };
 };
 
-const applyMove = (gameState: GameState, intent: MoveIntent): GameState => {
-  const { from, to } = intent;
-  const fromKey = toBoardKey(from);
-  const toKey = toBoardKey(to);
+const applyAction = (gameState: GameState, action: GameAction): GameState => {
+  switch (action.type) {
+    case "move": {
+      const { from, to } = action;
+      const fromKey = toBoardKey(from);
+      const toKey = toBoardKey(to);
 
-  const originTile = gameState.board[fromKey];
-  const destinationTile = gameState.board[toKey];
+      const originTile = gameState.board[fromKey];
+      const destinationTile = gameState.board[toKey];
 
-  if (!originTile || !originTile.piece || !destinationTile) {
-    return gameState;
+      if (!originTile || !originTile.piece || !destinationTile) {
+        return gameState;
+      }
+
+      const movingPiece = originTile.piece;
+      if (movingPiece.player !== gameState.currentPlayer) {
+        return gameState;
+      }
+
+      const legalActions = getValidActions(
+        gameState.board,
+        from.q,
+        from.r,
+        gameState.embassyLocations,
+        gameState,
+      );
+
+      const isValidAction = legalActions.some((legalAction) => {
+        if (legalAction.type !== "move") return false;
+        return legalAction.to.q === to.q && legalAction.to.r === to.r;
+      });
+
+      if (!isValidAction) {
+        return gameState;
+      }
+
+      const board = cloneBoard(gameState.board);
+      const capturedPieces = clonePieceCollection(gameState.capturedPieces);
+      const infoScores = cloneInfoTrack(gameState.infoScores);
+      const embassyFirstCapture = { ...gameState.embassyFirstCapture };
+
+      const opponent = getOpponent(gameState.currentPlayer);
+
+      const captured = destinationTile.piece
+        ? { ...destinationTile.piece }
+        : null;
+      if (captured) {
+        capturedPieces[gameState.currentPlayer].push(captured);
+      }
+
+      board[fromKey] = { ...board[fromKey], piece: null };
+      board[toKey] = { ...board[toKey], piece: { ...movingPiece } };
+
+      if (
+        movingPiece.type === "Spy" &&
+        to.q === gameState.embassyLocations[opponent].q &&
+        to.r === gameState.embassyLocations[opponent].r &&
+        !embassyFirstCapture[opponent]
+      ) {
+        infoScores[gameState.currentPlayer] += 1;
+        embassyFirstCapture[opponent] = true;
+      }
+
+      const updatedState: GameState = {
+        ...gameState,
+        board,
+        capturedPieces,
+        infoScores,
+        embassyFirstCapture,
+      };
+
+      const victory = checkVictory(updatedState);
+      if (victory.gameOver) {
+        return {
+          ...updatedState,
+          gameOver: true,
+          winner: victory.winner,
+        };
+      }
+
+      return {
+        ...updatedState,
+        currentPlayer: opponent,
+        turn: gameState.turn + 1,
+        gameOver: false,
+        winner: null,
+      };
+    }
+
+    case "gatherInfo": {
+      const { at, pieceId } = action;
+      const player = gameState.currentPlayer;
+
+      const atKey = toBoardKey(at);
+      const pieceToReturn = gameState.board[atKey]?.piece;
+      if (!pieceToReturn) return gameState;
+
+      const board = cloneBoard(gameState.board);
+      board[atKey] = { ...board[atKey], piece: null };
+
+      const infoScores = cloneInfoTrack(gameState.infoScores);
+      infoScores[player] += 1;
+
+      const updatedState: GameState = {
+        ...gameState,
+        board,
+        infoScores,
+        infoGatheredTiles: [...gameState.infoGatheredTiles, at],
+        spiesReadyToReturn: [...gameState.spiesReadyToReturn, pieceId],
+        returningSpies: [...gameState.returningSpies, pieceToReturn],
+      };
+
+      const victory = checkVictory(updatedState);
+      if (victory.gameOver) {
+        return {
+          ...updatedState,
+          gameOver: true,
+          winner: victory.winner,
+        };
+      }
+
+      return {
+        ...updatedState,
+        currentPlayer: getOpponent(player),
+        turn: gameState.turn + 1,
+        gameOver: false,
+        winner: null,
+      };
+    }
+
+    case "return": {
+      const { to, pieceId } = action;
+      const toKey = toBoardKey(to);
+
+      const pieceToReturn = gameState.returningSpies.find(
+        (p) => p.id === pieceId,
+      );
+      if (!pieceToReturn) return gameState;
+
+      const board = cloneBoard(gameState.board);
+      board[toKey] = { ...board[toKey], piece: pieceToReturn };
+
+      const spiesReadyToReturn = gameState.spiesReadyToReturn.filter(
+        (id) => id !== pieceId,
+      );
+      const returningSpies = gameState.returningSpies.filter(
+        (p) => p.id !== pieceId,
+      );
+
+      return {
+        ...gameState,
+        board,
+        spiesReadyToReturn,
+        returningSpies,
+        currentPlayer: getOpponent(gameState.currentPlayer),
+        turn: gameState.turn + 1,
+      };
+    }
+
+    default:
+      return gameState;
   }
-
-  const movingPiece = originTile.piece;
-  if (movingPiece.player !== gameState.currentPlayer) {
-    return gameState;
-  }
-
-  const legalMoves = getValidMoves(
-    gameState.board,
-    from.q,
-    from.r,
-    gameState.embassyLocations,
-    gameState,
-  );
-
-  if (!legalMoves.some((move) => move.q === to.q && move.r === to.r)) {
-    return gameState;
-  }
-
-  const board = cloneBoard(gameState.board);
-  const capturedPieces = clonePieceCollection(gameState.capturedPieces);
-  const infoScores = cloneInfoTrack(gameState.infoScores);
-  const embassyFirstCapture = { ...gameState.embassyFirstCapture };
-
-  const opponent = getOpponent(gameState.currentPlayer);
-
-  const captured = destinationTile.piece ? { ...destinationTile.piece } : null;
-  if (captured) {
-    capturedPieces[gameState.currentPlayer].push(captured);
-  }
-
-  board[fromKey] = { ...board[fromKey], piece: null };
-  board[toKey] = { ...board[toKey], piece: { ...movingPiece } };
-
-  if (
-    movingPiece.type === "Spy" &&
-    to.q === gameState.embassyLocations[opponent].q &&
-    to.r === gameState.embassyLocations[opponent].r &&
-    !embassyFirstCapture[opponent]
-  ) {
-    infoScores[gameState.currentPlayer] += 1;
-    embassyFirstCapture[opponent] = true;
-  }
-
-  const updatedState: GameState = {
-    ...gameState,
-    board,
-    capturedPieces,
-    infoScores,
-    embassyFirstCapture,
-  };
-
-  const victory = checkVictory(updatedState);
-  if (victory.gameOver) {
-    return {
-      ...updatedState,
-      gameOver: true,
-      winner: victory.winner,
-    };
-  }
-
-  return {
-    ...updatedState,
-    currentPlayer: opponent,
-    turn: gameState.turn + 1,
-    gameOver: false,
-    winner: null,
-  };
 };
 
-export function movePiece(gameState: GameState, intent: MoveIntent): GameState;
-export function movePiece(
-  gameState: GameState,
-  from: HexCoord,
-  to: HexCoord,
-): GameState;
-export function movePiece(
-  gameState: GameState,
-  arg1: MoveIntent | HexCoord,
-  arg2?: HexCoord,
-): GameState {
-  const intent: MoveIntent =
-    "from" in arg1 ? arg1 : { from: arg1, to: arg2 as HexCoord };
-
-  return applyMove(gameState, intent);
-}
+export const performAction = (gameState: GameState, action: GameAction): GameState => {
+  return applyAction(gameState, action);
+};

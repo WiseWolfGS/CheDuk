@@ -1,10 +1,10 @@
 import * as http from "node:http";
-import type { GameState, Tile } from "@cheduk/core-logic";
+import type { GameState, Tile, GameAction } from "@cheduk/core-logic";
 // Import from core-logic
 import {
   createInitialGameState,
-  getValidMoves,
-  movePiece,
+  getValidActions,
+  performAction,
 } from "@cheduk/core-logic";
 import { Server } from "socket.io";
 
@@ -52,25 +52,30 @@ io.on("connection", (socket) => {
       return;
     }
 
-    const validMoves = getValidMoves(
+    const validActions = getValidActions(
       gameState.board,
       move.from.q,
       move.from.r,
       gameState.embassyLocations,
+      gameState,
     );
-    const isMoveValid = validMoves.some(
-      (validMove) => validMove.q === move.to.q && validMove.r === move.to.r,
+    const isMoveValid = validActions.some(
+      (action) =>
+        action.type === "move" &&
+        action.to.q === move.to.q &&
+        action.to.r === move.to.r,
     );
 
     console.log("[DEBUG] Server-side validation:");
     console.log("  - Piece:", pieceOnBoard.type, pieceOnBoard.player);
     console.log("  - Current Player:", gameState.currentPlayer);
-    console.log("  - Valid Moves Calculated:", validMoves);
+    console.log("  - Valid Actions Calculated:", validActions);
     console.log("  - Is Move Valid:", isMoveValid);
 
     if (isMoveValid) {
       // 2. If valid, update the game state
-      const newGameState = movePiece(gameState, move.from, move.to);
+      const moveAction: GameAction = { type: "move", from: move.from, to: move.to };
+      const newGameState = performAction(gameState, moveAction);
       gameState = newGameState; // Update server's state
 
       // 3. Broadcast the new game state to all clients

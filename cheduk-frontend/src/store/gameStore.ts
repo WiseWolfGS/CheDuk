@@ -1,97 +1,121 @@
-import type { GameState, Tile } from "@cheduk/core-logic";
-import { createInitialGameState, getValidMoves } from "@cheduk/core-logic";
+import type { GameState, Tile, GameAction } from "@cheduk/core-logic";
+import {
+  createInitialGameState,
+  getValidActions,
+  performAction,
+} from "@cheduk/core-logic";
 import { create } from "zustand";
-import { io, type Socket } from "socket.io-client";
 
 interface GameStore {
   gameState: GameState;
   selectedTile: Tile | null;
-  validMoves: { q: number; r: number }[];
-  socket: Socket | null;
+  validActions: GameAction[];
+  isActionModalOpen: boolean;
 
-  initSocket: () => void;
-  setSelectedTile: (tile: Tile | null) => void;
-  setValidMoves: (moves: { q: number; r: number }[]) => void;
   handleTileClick: (clickedTile: Tile) => void;
+  handleAction: (action: GameAction) => void;
+  cancelAction: () => void;
+  enterMoveMode: () => void;
   resetGame: () => void;
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
   gameState: createInitialGameState(),
   selectedTile: null,
-  validMoves: [],
-  socket: null,
+  validActions: [],
+  isActionModalOpen: false,
 
-  initSocket: () => {
-    const socket = io("http://localhost:3001");
-    set({ socket });
-
-    socket.on("connect", () => {
-      console.log("Socket connected:", socket.id);
-    });
-
-    socket.on("disconnect", () => {
-      console.log("Socket disconnected");
-    });
-
-    socket.on("game state", (newGameState: GameState) => {
-      set({ gameState: newGameState });
-    });
-
-    socket.on("invalid move", (data: { error: string }) => {
-      // You can implement a more user-friendly notification system
-      alert(`Invalid Move: ${data.error}`);
+  handleAction: (action) => {
+    const newGameState = performAction(get().gameState, action);
+    set({
+      gameState: newGameState,
+      selectedTile: null,
+      validActions: [],
+      isActionModalOpen: false,
     });
   },
 
-  setSelectedTile: (tile) => set({ selectedTile: tile }),
-  setValidMoves: (moves) => set({ validMoves: moves }),
+  cancelAction: () => {
+    set({ selectedTile: null, validActions: [], isActionModalOpen: false });
+  },
+
+  enterMoveMode: () => {
+    set({ isActionModalOpen: false });
+  },
 
   handleTileClick: (clickedTile) => {
-    const { gameState, selectedTile, socket, setSelectedTile, setValidMoves } =
-      get();
+    const { gameState, selectedTile, handleAction, validActions } = get();
 
     if (selectedTile) {
-      // A piece is already selected, try to move it by emitting to server
-      const isMoveValid = getValidMoves(
-        gameState.board,
-        selectedTile.q,
-        selectedTile.r,
-        gameState.embassyLocations,
-      ).some((move) => move.q === clickedTile.q && move.r === clickedTile.r);
+      // A piece is already selected, try to perform an action
+      const targetAction = validActions.find((action) => {
+        if (action.type !== "move") return false;
+        return action.to.q === clickedTile.q && action.to.r === clickedTile.r;
+      });
 
-      if (isMoveValid) {
-        socket?.emit("game move", { from: selectedTile, to: clickedTile });
+      if (targetAction) {
+        handleAction(targetAction);
+      } else {
+        // Clicked on an invalid tile, so deselect
+        set({ selectedTile: null, validActions: [] });
       }
-      // Deselect after attempting a move
-      setSelectedTile(null);
-      setValidMoves([]);
     } else {
-      // No piece selected, try to select one
+      // No piece selected, check for return action or piece selection
       const pieceAtClickedTile =
         gameState.board[`${clickedTile.q},${clickedTile.r}`]?.piece;
+
+      // 1. Check if player is trying to return a spy
+      const returningSpyId = gameState.spiesReadyToReturn.find((id) =>
+        gameState.returningSpies.some(
+          (p) => p.id === id && p.player === gameState.currentPlayer,
+        ),
+      );
+      const isInTerritory = gameState.territories[gameState.currentPlayer].some(
+        (t) => t.q === clickedTile.q && t.r === clickedTile.r,
+      );
+
+      if (!pieceAtClickedTile && returningSpyId && isInTerritory) {
+        const returnAction: GameAction = {
+          type: "return",
+          to: clickedTile,
+          pieceId: returningSpyId,
+        };
+        handleAction(returnAction);
+        return; // End click handling
+      }
+
+      // 2. If not returning, try to select a piece
       if (
         pieceAtClickedTile &&
         pieceAtClickedTile.player === gameState.currentPlayer
       ) {
-        setSelectedTile(clickedTile);
-        // Get valid moves locally for quick UI feedback
-        const moves = getValidMoves(
+        const actions = getValidActions(
           gameState.board,
           clickedTile.q,
           clickedTile.r,
           gameState.embassyLocations,
+          gameState,
         );
-        setValidMoves(moves);
+
+        const hasSpecialActions = actions.some((a) => a.type !== "move");
+
+        if (hasSpecialActions) {
+          set({
+            selectedTile: clickedTile,
+            validActions: actions,
+            isActionModalOpen: true,
+          });
+        } else {
+          set({ selectedTile: clickedTile, validActions: actions });
+        }
       } else {
-        // Clicked on an empty tile or opponent's piece, deselect
-        setSelectedTile(null);
-        setValidMoves([]);
+        // Clicked on an empty tile or opponent's piece, do nothing
+        set({ selectedTile: null, validActions: [] });
       }
     }
   },
 
   resetGame: () => {
-    get().socket?.emit("reset game");
+    set({ gameState: createInitialGameState() });
   },
 }));

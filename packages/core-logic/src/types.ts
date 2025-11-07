@@ -45,12 +45,33 @@ export interface GameState {
   infoScores: InfoScoreTrack;
   capturedPieces: PieceCollection;
   embassyLocations: EmbassyMap;
-  embassyFirstCapture: Record<Player, boolean>;
-  territories: Record<Player, HexCoord[]>;
-  gameOver: boolean;
-  winner: Player | null;
-}
-
+     embassyFirstCapture: Record<Player, boolean>;
+     territories: Record<Player, HexCoord[]>;
+     infoGatheredTiles: HexCoord[];
+        spiesReadyToReturn: string[];
+        returningSpies: Piece[];
+        gameOver: boolean;     winner: Player | null;
+  }
+  
+  export type MoveAction = {
+    type: "move";
+    from: HexCoord;
+    to: HexCoord;
+  };
+  
+  export type GatherInfoAction = {
+    type: "gatherInfo";
+    at: HexCoord;
+    pieceId: string;
+  };
+  
+  export type ReturnAction = {
+    type: "return";
+    to: HexCoord;
+    pieceId: string;
+  };  
+  export type GameAction = MoveAction | GatherInfoAction | ReturnAction;
+  
 export interface MoveIntent {
   from: HexCoord;
   to: HexCoord;

@@ -10,7 +10,7 @@ const Board = () => {
     (state) => state.gameState.embassyLocations,
   );
   const selectedTile = useGameStore((state) => state.selectedTile);
-  const validMoves = useGameStore((state) => state.validMoves);
+  const validActions = useGameStore((state) => state.validActions);
   const onTileClick = useGameStore((state) => state.handleTileClick);
 
   return (
@@ -26,8 +26,11 @@ const Board = () => {
 
         const isSelected =
           selectedTile?.q === tile.q && selectedTile?.r === tile.r;
-        const isValidMove = validMoves.some(
-          (move) => move.q === tile.q && move.r === tile.r,
+        const isValidMove = validActions.some(
+          (action) =>
+            action.type === "move" &&
+            action.to.q === tile.q &&
+            action.to.r === tile.r,
         );
         const isEmbassy = Object.values(embassyLocations).some(
           (loc) => loc.q === tile.q && loc.r === tile.r,

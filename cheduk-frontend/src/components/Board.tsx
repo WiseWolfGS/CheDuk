@@ -5,6 +5,7 @@ import PieceComponent from "./Piece";
 const Board = () => {
   // Use Zustand store to get state and actions
   const board = useGameStore((state) => state.gameState.board);
+  const territories = useGameStore((state) => state.gameState.territories);
   const embassyLocations = useGameStore(
     (state) => state.gameState.embassyLocations,
   );
@@ -30,6 +31,13 @@ const Board = () => {
         );
         const isEmbassy = Object.values(embassyLocations).some(
           (loc) => loc.q === tile.q && loc.r === tile.r,
+        );
+
+        const isRedTerritory = territories?.Red.some(
+          (t) => t.q === tile.q && t.r === tile.r,
+        );
+        const isBlueTerritory = territories?.Blue.some(
+          (t) => t.q === tile.q && t.r === tile.r,
         );
 
         return (
@@ -59,7 +67,11 @@ const Board = () => {
                     ? "bg-green-500/40"
                     : isEmbassy
                       ? "bg-blue-300/30"
-                      : "group-hover:bg-white/20"
+                      : isRedTerritory
+                        ? "bg-red-500/20"
+                        : isBlueTerritory
+                          ? "bg-blue-500/20"
+                          : "group-hover:bg-white/20"
               }`}
             />
 

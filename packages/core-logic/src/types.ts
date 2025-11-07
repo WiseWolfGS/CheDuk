@@ -45,6 +45,8 @@ export interface GameState {
   infoScores: InfoScoreTrack;
   capturedPieces: PieceCollection;
   embassyLocations: EmbassyMap;
+  embassyFirstCapture: Record<Player, boolean>;
+  territories: Record<Player, HexCoord[]>;
   gameOver: boolean;
   winner: Player | null;
 }

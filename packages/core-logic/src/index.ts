@@ -1,4 +1,5 @@
 import { COLS, ROWS } from "@cheduk/geometry-hex";
+import { isInsideBoard, step, getTile } from "./moves/utils";
 
 import type {
   BoardKey,
@@ -67,6 +68,62 @@ const setPiece = (board: BoardState, coord: HexCoord, piece: Piece): void => {
   board[key].piece = piece;
 };
 
+const getTerritories = (
+  board: BoardState,
+  embassyLocations: EmbassyMap,
+): Record<Player, HexCoord[]> => {
+  const territories: Record<Player, HexCoord[]> = { Red: [], Blue: [] };
+  const redEmbassy = embassyLocations.Red;
+  const blueEmbassy = embassyLocations.Blue;
+
+  const blueDirection = "NE";
+  let blueCurrent: HexCoord = blueEmbassy;
+  const redDirection = "SW";
+  let redCurrent: HexCoord = redEmbassy;
+
+  // Blue territory rule
+  while (true) {
+    if (!isInsideBoard(board, blueCurrent)) break;
+
+    const blueDestination = getTile(board, blueCurrent);
+    if (!blueDestination) break;
+
+    territories.Blue.push(blueDestination);
+
+    let q = blueDestination.q;
+    let r = blueDestination.r;
+
+    while (q > 0) {
+      q -= 1;
+      territories.Blue.push({ q, r });
+    }
+
+    blueCurrent = step(blueCurrent, blueDirection);
+  }
+
+  // Red territory rule
+  while (true) {
+    if (!isInsideBoard(board, redCurrent)) break;
+
+    const redDestination = getTile(board, redCurrent);
+    if (!redDestination) break;
+
+    territories.Red.push(redDestination);
+
+    let q = redDestination.q;
+    let r = redDestination.r;
+
+    while (q < 11) {
+      q += 1;
+      territories.Red.push({ q, r });
+    }
+
+    redCurrent = step(redCurrent, redDirection);
+  }
+
+  return territories;
+};
+
 export const createInitialGameState = (): GameState => {
   const board: BoardState = {};
 
@@ -107,6 +164,8 @@ export const createInitialGameState = (): GameState => {
     Red: { q: 7, r: 5 },
   };
 
+  const territories = getTerritories(board, embassyLocations);
+
   return {
     board,
     currentPlayer: "Red",
@@ -114,6 +173,8 @@ export const createInitialGameState = (): GameState => {
     infoScores: { Red: 0, Blue: 0 },
     capturedPieces: { Red: [], Blue: [] },
     embassyLocations,
+    embassyFirstCapture: { Red: false, Blue: false },
+    territories,
     gameOver: false,
     winner: null,
   };
@@ -135,16 +196,21 @@ const createFallbackState = (
   board: BoardState,
   embassyLocations: EmbassyMap,
   piece: Piece,
-): GameState => ({
-  board,
-  currentPlayer: piece.player,
-  turn: 0,
-  infoScores: { Red: 0, Blue: 0 },
-  capturedPieces: { Red: [], Blue: [] },
-  embassyLocations,
-  gameOver: false,
-  winner: null,
-});
+): GameState => {
+  const territories = getTerritories(board, embassyLocations);
+  return {
+    board,
+    currentPlayer: piece.player,
+    turn: 0,
+    infoScores: { Red: 0, Blue: 0 },
+    capturedPieces: { Red: [], Blue: [] },
+    embassyLocations,
+    embassyFirstCapture: { Red: false, Blue: false },
+    territories,
+    gameOver: false,
+    winner: null,
+  };
+};
 
 export const getValidMoves = (
   board: BoardState,
@@ -219,6 +285,7 @@ const applyMove = (gameState: GameState, intent: MoveIntent): GameState => {
   const board = cloneBoard(gameState.board);
   const capturedPieces = clonePieceCollection(gameState.capturedPieces);
   const infoScores = cloneInfoTrack(gameState.infoScores);
+  const embassyFirstCapture = { ...gameState.embassyFirstCapture };
 
   const opponent = getOpponent(gameState.currentPlayer);
 
@@ -233,9 +300,11 @@ const applyMove = (gameState: GameState, intent: MoveIntent): GameState => {
   if (
     movingPiece.type === "Spy" &&
     to.q === gameState.embassyLocations[opponent].q &&
-    to.r === gameState.embassyLocations[opponent].r
+    to.r === gameState.embassyLocations[opponent].r &&
+    !embassyFirstCapture[opponent]
   ) {
     infoScores[gameState.currentPlayer] += 1;
+    embassyFirstCapture[opponent] = true;
   }
 
   const updatedState: GameState = {
@@ -243,6 +312,7 @@ const applyMove = (gameState: GameState, intent: MoveIntent): GameState => {
     board,
     capturedPieces,
     infoScores,
+    embassyFirstCapture,
   };
 
   const victory = checkVictory(updatedState);

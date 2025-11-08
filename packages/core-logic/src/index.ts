@@ -235,9 +235,54 @@ export const getValidActions = (
 ): GameAction[] => {
   const key = toBoardKey({ q, r });
   const tile = board[key];
-  if (!tile || !tile.piece) return [];
+  const piece = tile?.piece;
 
-  const piece = tile.piece;
+  // If no piece is selected, but we have a gameState, we can still generate global actions
+  if (!piece && gameState) {
+    const player = gameState.currentPlayer;
+    const opponent = getOpponent(player);
+    const specialActions: GameAction[] = [];
+
+    const capturedSpies = gameState.capturedPieces[opponent].filter(
+      (p) => p.type === "Spy" && p.player === player,
+    );
+    const capturedAmbassador = gameState.capturedPieces[opponent].find(
+      (p) => p.type === "Ambassador" && p.player === player,
+    );
+
+    if (capturedSpies.length > 0) {
+      const emptyTerritoryTiles = gameState.territories[player].filter(
+        (tile) => !getTile(gameState.board, tile)?.piece,
+      );
+      for (const spy of capturedSpies) {
+        for (const tile of emptyTerritoryTiles) {
+          specialActions.push({
+            type: "resurrect",
+            to: tile,
+            pieceId: spy.id,
+          });
+        }
+      }
+    }
+
+    if (capturedAmbassador) {
+      const embassyTile = getTile(
+        gameState.board,
+        gameState.embassyLocations[player],
+      );
+      if (embassyTile && !embassyTile.piece) {
+        specialActions.push({
+          type: "resurrect",
+          to: gameState.embassyLocations[player],
+          pieceId: capturedAmbassador.id,
+        });
+      }
+    }
+    return specialActions;
+  }
+
+  if (!tile || !piece) return [];
+
   const state = gameState ?? createFallbackState(board, embassyLocations, piece);
 
   // Generate move actions
@@ -280,7 +325,6 @@ export const getValidActions = (
       }
     }
   }
-
   return [...moveActions, ...specialActions];
 };
 
@@ -457,6 +501,37 @@ const applyAction = (gameState: GameState, action: GameAction): GameState => {
         spiesReadyToReturn,
         returningSpies,
         currentPlayer: getOpponent(gameState.currentPlayer),
+        turn: gameState.turn + 1,
+      };
+    }
+
+    case "resurrect": {
+      const { to, pieceId } = action;
+      const player = gameState.currentPlayer;
+      const opponent = getOpponent(player);
+
+      const capturedPieceIndex = gameState.capturedPieces[opponent].findIndex(
+        (p) => p.id === pieceId,
+      );
+      if (capturedPieceIndex === -1) return gameState;
+
+      const pieceToResurrect =
+        gameState.capturedPieces[opponent][capturedPieceIndex];
+
+      // TODO: Add validation logic here if needed, though getValidActions should prevent illegal moves.
+
+      const board = cloneBoard(gameState.board);
+      const toKey = toBoardKey(to);
+      board[toKey] = { ...board[toKey], piece: pieceToResurrect };
+
+      const capturedPieces = clonePieceCollection(gameState.capturedPieces);
+      capturedPieces[opponent].splice(capturedPieceIndex, 1);
+
+      return {
+        ...gameState,
+        board,
+        capturedPieces,
+        currentPlayer: opponent,
         turn: gameState.turn + 1,
       };
     }

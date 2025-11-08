@@ -69,9 +69,15 @@ export interface GameState {
     type: "return";
     to: HexCoord;
     pieceId: string;
-  };  
-  export type GameAction = MoveAction | GatherInfoAction | ReturnAction;
+  };
   
+  export type ResurrectAction = {
+    type: "resurrect";
+    to: HexCoord;
+    pieceId: string;
+  };
+  
+  export type GameAction = MoveAction | GatherInfoAction | ReturnAction | ResurrectAction;  
 export interface MoveIntent {
   from: HexCoord;
   to: HexCoord;

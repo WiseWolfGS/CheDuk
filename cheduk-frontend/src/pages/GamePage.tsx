@@ -1,4 +1,5 @@
 import Board from "../components/Board";
+import CapturedPieces from "../components/CapturedPieces";
 import GameInfo from "../components/GameInfo";
 import GameOverModal from "../components/GameOverModal";
 import { useGameStore } from "../store/gameStore";
@@ -11,8 +12,9 @@ const GamePage = () => {
       <div className="flex-grow flex items-center justify-center">
         <Board />
       </div>
-      <div className="w-full lg:w-80 flex-shrink-0">
+      <div className="w-full lg:w-80 flex-shrink-0 space-y-4">
         <GameInfo />
+        <CapturedPieces />
       </div>
       {gameOver && <GameOverModal />}
     </div>

@@ -11,6 +11,7 @@ const Board = () => {
   );
   const selectedTile = useGameStore((state) => state.selectedTile);
   const validActions = useGameStore((state) => state.validActions);
+  const resurrectionState = useGameStore((state) => state.resurrectionState);
   const onTileClick = useGameStore((state) => state.handleTileClick);
 
   return (
@@ -32,6 +33,14 @@ const Board = () => {
             action.to.q === tile.q &&
             action.to.r === tile.r,
         );
+        const isValidResurrectionMove =
+          resurrectionState.isResurrecting &&
+          validActions.some(
+            (action) =>
+              action.type === "resurrect" &&
+              action.to.q === tile.q &&
+              action.to.r === tile.r,
+          );
         const isEmbassy = Object.values(embassyLocations).some(
           (loc) => loc.q === tile.q && loc.r === tile.r,
         );
@@ -66,7 +75,7 @@ const Board = () => {
               className={`w-full h-full rounded-full transition-colors ${
                 isSelected
                   ? "bg-yellow-500/50"
-                  : isValidMove
+                  : isValidMove || isValidResurrectionMove
                     ? "bg-green-500/40"
                     : isEmbassy
                       ? "bg-blue-300/30"

@@ -1,0 +1,67 @@
+# 2025년 11월 8일 개발 로그
+
+## 1. 신규 기능: 첩자(Spy) 및 대사(Ambassador) 부활 시스템 구현
+
+첩자와 대사 기물이 포획되었을 때, 특정 조건 하에 다시 게임에 참여할 수 있는 부활 시스템을 백엔드 로직부터 프론트엔드 UI까지 구현했습니다.
+
+### 1.1. 핵심 로직 (`packages/core-logic`)
+- `packages/core-logic/src/types.ts`에 `ResurrectAction` 타입을 추가하여 부활 행동을 정의했습니다.
+- `packages/core-logic/src/index.ts`의 `getValidActions` 함수를 수정하여, 현재 플레이어의 포획된 첩자(아군 영역 내 빈 타일) 및 대사(비어있는 대사관 타일)에 대한 `ResurrectAction`을 생성하도록 했습니다.
+- `performAction` 함수 내 `applyAction` 로직에 `ResurrectAction`을 처리하는 케이스를 추가하여, 포획된 기물을 `capturedPieces` 목록에서 제거하고 지정된 위치에 다시 배치하도록 구현했습니다.
+
+### 1.2. 프론트엔드 UI (`cheduk-frontend`)
+- `cheduk-frontend/src/store/gameStore.ts`에 `resurrectionState` (부활 모드 관리) 및 `startResurrection` 함수를 추가했습니다.
+- `handleTileClick` 로직을 수정하여 `resurrectionState`가 활성화되었을 때 `ResurrectAction`을 처리하도록 했습니다.
+- `cheduk-frontend/src/components/CapturedPieces.tsx` 컴포넌트를 새로 생성하여, 부활 가능한 기물 목록을 표시하고 클릭 시 `startResurrection`을 트리거하도록 했습니다.
+- `cheduk-frontend/src/pages/GamePage.tsx`에 `CapturedPieces.tsx` 컴포넌트를 통합하여 UI에 노출했습니다.
+- `cheduk-frontend/src/components/Board.tsx`를 업데이트하여 `resurrectionState`에 따라 유효한 부활 타일을 시각적으로 하이라이트하도록 했습니다.
+
+## 2. 버그 수정: 프론트엔드 무한 재렌더링 루프 (`CapturedPieces` 컴포넌트)
+
+### 2.1. 문제점
+- `CapturedPieces` 컴포넌트 렌더링 시 "Maximum update depth exceeded" 오류가 발생하며 화면이 비정상적으로 표시되었습니다.
+
+### 2.2. 원인
+- `CapturedPieces.tsx` 내 `useGameStore` 훅의 선택자 함수가 렌더링될 때마다 새로운 객체를 반환하여, Zustand가 상태가 변경되었다고 판단, 무한 재렌더링 루프를 유발했습니다.
+
+### 2.3. 해결책
+- `CapturedPieces.tsx`에서 `useGameStore` 호출 방식을 리팩토링하여 `gameState`와 `startResurrection`을 개별적으로 선택하도록 수정하여, 불필요한 리렌더링을 방지하고 무한 루프 오류를 해결했습니다.
+
+## 3. UI/UX 개선 시도 및 롤백: 보드 크기 조정 및 레이아웃 문제
+
+보드 크기 및 레이아웃 관련 여러 문제 해결을 시도했으나, 복잡한 CSS 상호작용으로 인해 원하는 결과를 얻지 못하고 최종적으로 모든 변경사항을 롤백했습니다.
+
+### 3.1. 초기 문제: 브라우저 화면 폭 초과 (수평 오버플로)
+- **시도:** `cheduk-frontend/src/pages/GamePage.tsx`의 보드 컨테이너에 `flex-1 min-w-0` 적용.
+- **결과:** 문제 해결되지 않음. 실제 문제는 수직 오버플로로 파악.
+
+### 3.2. 문제 재정의: 화면 높이 초과 (수직 오버플로)
+- **시도 1:** `cheduk-frontend/src/App.tsx`의 최상위 `div`에 `h-screen overflow-y-auto` 적용 및 `justify-center` 제거.
+- **결과:** 제목이 잘리고 스크롤이 여전히 발생하는 문제 발생.
+
+### 3.3. 문제 재정의: 보드 크기 축소 및 렌더링 오류
+- **시도 1:** `App.tsx`에 `h-screen`, `<main>`에 `flex-1 min-h-0` 적용.
+- **시도 2:** `Board.tsx`에 `max-w-full max-h-full aspect-square` 적용.
+- **결과:** 보드가 사라지고 '레드팀 수반' 기물만 보이는 문제 발생. 진단용 테두리(`ring-2`)를 추가하여 문제 지점 파악 시도.
+- **진단 결과:** 보드 컨테이너의 높이가 0으로 축소되는 문제 확인.
+
+### 3.4. 문제 재정의: 보드/기물 스케일링 및 비율 왜곡
+- **시도:** `Board.tsx`의 타일 버튼 크기를 `48px` 고정값에서 `8.5%` 백분율로 변경.
+- **결과:** 보드가 정사각형이 아니어서 기물들이 타원형으로 왜곡되는 문제 발생.
+
+### 3.5. 문제 재정의: 보드 `div`의 정사각형 유지 실패
+- **시도:** `Board.tsx`에서 `w-full` 제거하여 `max-h`와 `aspect-square`가 올바르게 작동하도록 시도.
+- **결과:** 보드가 다시 사라지는 문제 발생.
+
+### 3.6. 문제 재정의: `padding-bottom` 트릭 적용 시도
+- **시도:** `Board.tsx`에 `padding-bottom: 100%` 트릭을 사용하여 보드를 반응형 정사각형으로 만들고, 내부 콘텐츠를 `absolute inset-0`로 채움.
+- **결과:** 보드는 정사각형으로 렌더링되나, 다시 `100vh`를 초과하는 수직 오버플로 문제 발생.
+
+### 3.7. 최종 롤백
+- 지속적인 레이아웃 문제 해결 실패로 인해, 모든 UI/UX 개선 시도 변경사항을 마지막 커밋 상태로 롤백했습니다.
+
+## 4. 요약 및 현재 상태
+
+- 첩자 및 대사 부활 시스템 구현 및 관련 프론트엔드 버그 수정 완료.
+- 보드 레이아웃 및 크기 조정 관련 UI/UX 개선 시도는 복잡한 CSS 상호작용 문제로 인해 해결하지 못하고 모든 변경사항을 롤백했습니다.
+- 다음 작업은 보드 레이아웃 문제를 다시 접근하거나, 다른 기능 구현으로 넘어갈 수 있습니다.

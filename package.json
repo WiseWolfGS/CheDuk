@@ -7,7 +7,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "concurrently \"pnpm --filter cheduk-frontend dev\" \"pnpm --filter remix-app dev\"",
-    "build": "pnpm run build -w frontend && pnpm run build -w remix-app",
+    "build": "pnpm --filter cheduk-frontend build && pnpm --filter remix-app build",
     "clean": "rimraf node_modules \"cheduk-frontend/node_modules\" \"remix-app/node_modules\" \"packages/**/node_modules\"",
     "format": "biome format --write .",
     "lint": "biome lint .",

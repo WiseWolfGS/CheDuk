@@ -1,8 +1,15 @@
-import React from "react";
+import React, { useMemo } from "react";
 import boardCells from "../data/board-data";
-import { useGameStore } from "../store/gameStore"; // Import Zustand store
+import { useGameStore } from "../store/gameStore";
 import PieceComponent from "./Piece";
 import type { CellData } from "../data/board-data";
+
+type BoardKey = `${number},${number}`;
+
+interface HexCoord {
+  q: number;
+  r: number;
+}
 
 /**
  * Calculates the geometric center of an SVG path string by parsing its commands.
@@ -96,14 +103,14 @@ interface MappedCell {
 }
 
 // Create a mapping from q,r coordinates to the board cell data and its center.
-const coordinateToCellMap: Record<string, MappedCell> = {};
+const coordinateToCellMap: Record<BoardKey, MappedCell> = {};
 const COLS = 11;
 const ROWS = 12;
 
 // Assuming boardCells is ordered row-by-row (r then q)
 for (let r = 0; r < ROWS; r++) {
   for (let q = 0; q < COLS; q++) {
-    const key = `${q},${r}`;
+    const key = `${q},${r}` as BoardKey;
     const index = r * COLS + q;
     if (index < boardCells.length) {
       const pathData = boardCells[index];
@@ -115,6 +122,8 @@ for (let r = 0; r < ROWS; r++) {
   }
 }
 
+const toBoardKey = ({ q, r }: HexCoord): BoardKey => `${q},${r}` as BoardKey;
+
 const Board: React.FC = () => {
   const {
     gameState,
@@ -125,6 +134,50 @@ const Board: React.FC = () => {
   } = useGameStore();
 
   const { board, territories, embassyLocations } = gameState;
+
+  const tiles = useMemo(() => Object.values(board), [board]);
+  const selectedKey = selectedTile ? toBoardKey(selectedTile) : null;
+
+  const moveTargets = useMemo(() => {
+    const targets = new Set<BoardKey>();
+    validActions
+      .filter((action) => action.type === "move")
+      .forEach((action) => targets.add(toBoardKey(action.to)));
+    return targets;
+  }, [validActions]);
+
+  const resurrectionTargets = useMemo(() => {
+    if (!resurrectionState.isResurrecting) {
+      return new Set<BoardKey>();
+    }
+
+    const targets = new Set<BoardKey>();
+    validActions
+      .filter((action) => action.type === "resurrect")
+      .forEach((action) => targets.add(toBoardKey(action.to)));
+    return targets;
+  }, [resurrectionState.isResurrecting, validActions]);
+
+  const embassyTiles = useMemo(() => {
+    const targets = new Set<BoardKey>();
+    Object.values(embassyLocations).forEach((location) => {
+      targets.add(toBoardKey(location));
+    });
+    return targets;
+  }, [embassyLocations]);
+
+  const territoryTiles = useMemo(() => {
+    const createSet = (coords: HexCoord[] | undefined) => {
+      const set = new Set<BoardKey>();
+      coords?.forEach((coord) => set.add(toBoardKey(coord)));
+      return set;
+    };
+
+    return {
+      Red: createSet(territories?.Red),
+      Blue: createSet(territories?.Blue),
+    };
+  }, [territories]);
 
   return (
     <div
@@ -142,39 +195,20 @@ const Board: React.FC = () => {
         preserveAspectRatio="xMidYMid meet"
       >
         <g transform="rotate(90, 413.75669, 458.02477)">
-          {Object.values(board).map((tile) => {
-            const key = `${tile.q},${tile.r}`;
+          {tiles.map((tile) => {
+            const key = toBoardKey(tile);
             const cellInfo = coordinateToCellMap[key];
 
             if (!cellInfo) return null;
 
             const { pathData, center } = cellInfo;
 
-            const isSelected =
-              selectedTile?.q === tile.q && selectedTile?.r === tile.r;
-            const isValidMove = validActions.some(
-              (action) =>
-                action.type === "move" &&
-                action.to.q === tile.q &&
-                action.to.r === tile.r,
-            );
-            const isValidResurrectionMove =
-              resurrectionState.isResurrecting &&
-              validActions.some(
-                (action) =>
-                  action.type === "resurrect" &&
-                  action.to.q === tile.q &&
-                  action.to.r === tile.r,
-              );
-            const isEmbassy = Object.values(embassyLocations).some(
-              (loc) => loc.q === tile.q && loc.r === tile.r,
-            );
-            const isRedTerritory = territories?.Red.some(
-              (t) => t.q === tile.q && t.r === tile.r,
-            );
-            const isBlueTerritory = territories?.Blue.some(
-              (t) => t.q === tile.q && t.r === tile.r,
-            );
+            const isSelected = key === selectedKey;
+            const isValidMove = moveTargets.has(key);
+            const isValidResurrectionMove = resurrectionTargets.has(key);
+            const isEmbassy = embassyTiles.has(key);
+            const isRedTerritory = territoryTiles.Red.has(key);
+            const isBlueTerritory = territoryTiles.Blue.has(key);
 
             let fillColor = pathData.fill; // Default fill
             if (isSelected) {

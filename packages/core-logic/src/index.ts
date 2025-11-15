@@ -68,6 +68,25 @@ const cloneInfoTrack = (track: InfoScoreTrack): InfoScoreTrack => ({
 
 const getOpponent = (player: Player): Player => (player === "Red" ? "Blue" : "Red");
 
+const findAdjacentGuard = (
+  board: BoardState,
+  chiefCoord: HexCoord,
+  chiefPlayer: Player,
+): { guardPiece: Piece; guardCoord: HexCoord } | null => {
+  for (const dir of ALL_DIRECTIONS) {
+    const neighborCoord = step(chiefCoord, dir);
+    const neighborTile = getTile(board, neighborCoord);
+    if (
+      neighborTile?.piece &&
+      neighborTile.piece.type === "Guard" &&
+      neighborTile.piece.player === chiefPlayer
+    ) {
+      return { guardPiece: neighborTile.piece, guardCoord: neighborCoord };
+    }
+  }
+  return null;
+};
+
 const setPiece = (board: BoardState, coord: HexCoord, piece: Piece): void => {
   const key = toBoardKey(coord);
   if (!board[key]) {
@@ -389,50 +408,117 @@ const applyAction = (gameState: GameState, action: GameAction): GameState => {
 
       const opponent = getOpponent(gameState.currentPlayer);
 
-      const captured = destinationTile.piece
-        ? { ...destinationTile.piece }
-        : null;
-      if (captured) {
-        capturedPieces[gameState.currentPlayer].push(captured);
-      }
+      const targetPiece = destinationTile.piece; // The piece at the 'to' coordinate
 
-      board[fromKey] = { ...board[fromKey], piece: null };
-      board[toKey] = { ...board[toKey], piece: { ...movingPiece } };
+      let finalUpdatedState: GameState; // Declare a variable to hold the final state
 
-      if (
-        movingPiece.type === "Spy" &&
-        to.q === gameState.embassyLocations[opponent].q &&
-        to.r === gameState.embassyLocations[opponent].r &&
-        !embassyFirstCapture[opponent]
-      ) {
-        infoScores[gameState.currentPlayer] += 1;
-        embassyFirstCapture[opponent] = true;
-      }
+      // --- Guard Protection Logic ---
+      if (targetPiece?.type === "Chief" && targetPiece.player === opponent) {
+        const guardProtection = findAdjacentGuard(board, to, opponent);
 
-      const updatedState: GameState = {
-        ...gameState,
-        board,
-        capturedPieces,
-        infoScores,
-        embassyFirstCapture,
-      };
+        if (guardProtection) {
+          // Guard protection is active!
+          const { guardPiece, guardCoord } = guardProtection;
 
-      const victory = checkVictory(updatedState);
-      if (victory.gameOver) {
-        return {
-          ...updatedState,
-          gameOver: true,
-          winner: victory.winner,
+          // 1. Capture the Guard instead of the Chief
+          capturedPieces[gameState.currentPlayer].push(guardPiece);
+          board[toBoardKey(guardCoord)].piece = null; // Remove Guard from its position
+
+          // 2. Attacking piece (movingPiece) stays at its origin
+          //    Chief (targetPiece) stays at its destination ('to')
+          //    No change to movingPiece's position or targetPiece's position on board
+
+          finalUpdatedState = {
+            ...gameState,
+            board,
+            capturedPieces,
+            infoScores, // No change to infoScores for this event
+            embassyFirstCapture, // No change
+            currentPlayer: opponent, // Turn switches
+            turn: gameState.turn + 1,
+            gameOver: false, // Chief was not captured
+            winner: null,
+          };
+          // Skip normal move logic below
+        } else {
+          // No Guard protection, Chief is captured normally
+          capturedPieces[gameState.currentPlayer].push(targetPiece); // Capture Chief
+          board[fromKey].piece = null; // Remove movingPiece from origin
+          board[toKey].piece = { ...movingPiece }; // Place movingPiece at target
+
+          finalUpdatedState = {
+            ...gameState,
+            board,
+            capturedPieces,
+            infoScores,
+            embassyFirstCapture,
+          };
+
+          const victory = checkVictory(finalUpdatedState);
+          if (victory.gameOver) {
+            finalUpdatedState = {
+              ...finalUpdatedState,
+              gameOver: true,
+              winner: victory.winner,
+            };
+          } else {
+            finalUpdatedState = {
+              ...finalUpdatedState,
+              currentPlayer: opponent,
+              turn: gameState.turn + 1,
+              gameOver: false,
+              winner: null,
+            };
+          }
+        }
+      } else {
+        // --- Normal Move/Capture Logic (no Chief involved, or Chief not protected) ---
+        const captured = targetPiece ? { ...targetPiece } : null;
+        if (captured) {
+          capturedPieces[gameState.currentPlayer].push(captured);
+        }
+
+        board[fromKey].piece = null; // Remove movingPiece from origin
+        board[toKey].piece = { ...movingPiece }; // Place movingPiece at target
+
+        // Spy embassy capture bonus
+        if (
+          movingPiece.type === "Spy" &&
+          to.q === gameState.embassyLocations[opponent].q &&
+          to.r === gameState.embassyLocations[opponent].r &&
+          !embassyFirstCapture[opponent]
+        ) {
+          infoScores[gameState.currentPlayer] += 1;
+          embassyFirstCapture[opponent] = true;
+        }
+
+        finalUpdatedState = {
+          ...gameState,
+          board,
+          capturedPieces,
+          infoScores,
+          embassyFirstCapture,
         };
+
+        const victory = checkVictory(finalUpdatedState);
+        if (victory.gameOver) {
+          finalUpdatedState = {
+            ...finalUpdatedState,
+            gameOver: true,
+            winner: victory.winner,
+          };
+        } else {
+          finalUpdatedState = {
+            ...finalUpdatedState,
+            currentPlayer: opponent,
+            turn: gameState.turn + 1,
+            gameOver: false,
+            winner: null,
+          };
+        }
       }
 
-      return {
-        ...updatedState,
-        currentPlayer: opponent,
-        turn: gameState.turn + 1,
-        gameOver: false,
-        winner: null,
-      };
+      return finalUpdatedState;
     }
 
     case "gatherInfo": {

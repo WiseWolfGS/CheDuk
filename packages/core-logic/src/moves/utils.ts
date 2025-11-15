@@ -69,3 +69,31 @@ export const isFriendly = (piece: Piece, occupant: Piece | null): boolean =>
 
 export const isEnemy = (piece: Piece, occupant: Piece | null): boolean =>
   Boolean(occupant && occupant.player !== piece.player);
+
+export interface CubeCoord {
+  x: number;
+  y: number;
+  z: number;
+}
+
+/**
+ * Converts odd-r offset coordinates to cube coordinates.
+ * @param coord The odd-r offset coordinate {q, r}.
+ * @returns The cube coordinate {x, y, z}.
+ */
+export const offsetToCube = (coord: HexCoord): CubeCoord => {
+  const x = coord.q - (coord.r - (coord.r & 1)) / 2;
+  const z = coord.r;
+  const y = -x - z;
+  return { x, y, z };
+};
+
+/**
+ * Calculates the distance between two cube coordinates.
+ * @param a The first cube coordinate.
+ * @param b The second cube coordinate.
+ * @returns The distance in number of hexes.
+ */
+export const cubeDistance = (a: CubeCoord, b: CubeCoord): number => {
+  return (Math.abs(a.x - b.x) + Math.abs(a.y - b.y) + Math.abs(a.z - b.z)) / 2;
+};

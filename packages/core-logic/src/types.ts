@@ -38,47 +38,73 @@ export type InfoScoreTrack = Record<Player, number>;
 
 export type EmbassyMap = Record<Player, HexCoord>;
 
+export type GamePhase =
+  | "placement-ambassador-red"
+  | "placement-ambassador-blue"
+  | "placement-spy-blue"
+  | "placement-spy-red"
+  | "main";
+
 export interface GameState {
   board: BoardState;
   currentPlayer: Player;
+  gamePhase: GamePhase;
   turn: number;
   infoScores: InfoScoreTrack;
   capturedPieces: PieceCollection;
-  embassyLocations: EmbassyMap;
-     embassyFirstCapture: Record<Player, boolean>;
-     territories: Record<Player, HexCoord[]>;
-     infoGatheredTiles: HexCoord[];
-        spiesReadyToReturn: string[];
-        returningSpies: Piece[];
-        gameOver: boolean;     winner: Player | null;
-  }
-  
-  export type MoveAction = {
-    type: "move";
-    from: HexCoord;
-    to: HexCoord;
-  };
-  
-  export type GatherInfoAction = {
-    type: "gatherInfo";
-    at: HexCoord;
-    pieceId: string;
-  };
-  
-  export type ReturnAction = {
-    type: "return";
-    to: HexCoord;
-    pieceId: string;
-  };
-  
-  export type ResurrectAction = {
-    type: "resurrect";
-    to: HexCoord;
-    pieceId: string;
-  };
-  
-  export type GameAction = MoveAction | GatherInfoAction | ReturnAction | ResurrectAction;  
-export interface MoveIntent {
+  unplacedPieces: PieceCollection;
+  embassyLocations: Partial<EmbassyMap>;
+  embassyFirstCapture: Record<Player, boolean>;
+  territories: Record<Player, HexCoord[]>;
+  infoGatheredTiles: HexCoord[];
+  spiesReadyToReturn: string[]; // pieceId[]
+  returningSpies: Piece[];
+  mainGameFirstPlayer: Player | null;
+  gameOver: boolean;
+  winner: Player | null;
+}
+
+export type MoveAction = {
+  type: "move";
   from: HexCoord;
   to: HexCoord;
-}
+};
+
+export type GatherInfoAction = {
+  type: "gatherInfo";
+  at: HexCoord;
+  pieceId: string;
+};
+
+export type ReturnAction = {
+  type: "return";
+  to: HexCoord;
+  pieceId: string;
+};
+
+export type ResurrectAction = {
+  type: "resurrect";
+  to: HexCoord;
+  pieceId: string;
+};
+
+export type PlaceAmbassadorAction = {
+  type: "placeAmbassador";
+  to: HexCoord;
+  player: Player;
+};
+
+export type PlaceSpyAction = {
+  type: "placeSpy";
+  to: HexCoord;
+  player: Player;
+  pieceId: string;
+};
+
+export type GameAction =
+  | MoveAction
+  | GatherInfoAction
+  | ReturnAction
+  | ResurrectAction
+  | PlaceAmbassadorAction
+  | PlaceSpyAction;

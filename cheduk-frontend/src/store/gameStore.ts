@@ -24,22 +24,42 @@ interface GameStore {
   resetGame: () => void;
 }
 
-export const useGameStore = create<GameStore>((set, get) => ({
-  gameState: createInitialGameState(),
+const initialGameState = createInitialGameState();
+const initialValidActions = getValidActions(
+  initialGameState.board,
+  -1,
+  -1,
+  initialGameState.embassyLocations,
+  initialGameState,
+);
+
+const initialState = {
+  gameState: initialGameState,
   selectedTile: null,
-  validActions: [],
+  validActions: initialValidActions,
   isActionModalOpen: false,
   resurrectionState: {
     isResurrecting: false,
     pieceId: null,
   },
+};
+
+export const useGameStore = create<GameStore>((set, get) => ({
+  ...initialState,
 
   handleAction: (action) => {
     const newGameState = performAction(get().gameState, action);
+    const newValidActions = getValidActions(
+      newGameState.board,
+      -1,
+      -1,
+      newGameState.embassyLocations,
+      newGameState,
+    );
     set({
       gameState: newGameState,
       selectedTile: null,
-      validActions: [],
+      validActions: newValidActions,
       isActionModalOpen: false,
       resurrectionState: { isResurrecting: false, pieceId: null },
     });
@@ -86,6 +106,26 @@ export const useGameStore = create<GameStore>((set, get) => ({
       resurrectionState,
     } = get();
 
+    // --- Placement Phase Logic ---
+    if (gameState.gamePhase.startsWith("placement")) {
+      const targetAction = validActions.find((action) => {
+        if (
+          action.type !== "placeAmbassador" &&
+          action.type !== "placeSpy"
+        ) {
+          return false;
+        }
+        return action.to.q === clickedTile.q && action.to.r === clickedTile.r;
+      });
+
+      if (targetAction) {
+        handleAction(targetAction);
+      }
+      return; // End click handling for placement phase
+    }
+
+    // --- Main Game Phase Logic ---
+
     // 1. Handle resurrection action
     if (resurrectionState.isResurrecting) {
       const targetAction = validActions.find((action) => {
@@ -129,7 +169,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           (p) => p.id === id && p.player === gameState.currentPlayer,
         ),
       );
-      const isInTerritory = gameState.territories[gameState.currentPlayer].some(
+      const isInTerritory = gameState.territories[gameState.currentPlayer]?.some(
         (t) => t.q === clickedTile.q && t.r === clickedTile.r,
       );
 
@@ -178,6 +218,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   resetGame: () => {
-    set({ gameState: createInitialGameState() });
+    const newInitialState = createInitialGameState();
+    const newInitialActions = getValidActions(
+      newInitialState.board,
+      -1,
+      -1,
+      newInitialState.embassyLocations,
+      newInitialState,
+    );
+    set({
+      ...initialState,
+      gameState: newInitialState,
+      validActions: newInitialActions,
+    });
   },
 }));

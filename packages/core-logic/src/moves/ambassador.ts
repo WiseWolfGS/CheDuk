@@ -69,7 +69,7 @@ const collectStepMoves = (
 export const getAmbassadorMoves: MoveGenerator = ({ board, origin, piece, state }) => {
   const embassy = state.embassyLocations[piece.player];
 
-  if (isAtEmbassy(origin, embassy)) {
+  if (embassy && isAtEmbassy(origin, embassy)) {
     const isOddRow = origin.r % 2 !== 0;
     const offsets = isOddRow ? ODD_ROW_EMBASSY_OFFSETS : EVEN_ROW_EMBASSY_OFFSETS;
     return collectEmbassyMoves(origin, offsets, board, piece);

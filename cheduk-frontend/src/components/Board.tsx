@@ -166,6 +166,20 @@ const Board: React.FC = () => {
     return targets;
   }, [embassyLocations]);
 
+  const placementTargets = useMemo(() => {
+    if (!gameState.gamePhase.startsWith("placement")) {
+      return new Set<BoardKey>();
+    }
+    const targets = new Set<BoardKey>();
+    validActions
+      .filter(
+        (action) =>
+          action.type === "placeAmbassador" || action.type === "placeSpy",
+      )
+      .forEach((action) => targets.add(toBoardKey(action.to)));
+    return targets;
+  }, [validActions, gameState.gamePhase]);
+
   const territoryTiles = useMemo(() => {
     const createSet = (coords: HexCoord[] | undefined) => {
       const set = new Set<BoardKey>();
@@ -206,6 +220,7 @@ const Board: React.FC = () => {
             const isSelected = key === selectedKey;
             const isValidMove = moveTargets.has(key);
             const isValidResurrectionMove = resurrectionTargets.has(key);
+            const isValidPlacement = placementTargets.has(key);
             const isEmbassy = embassyTiles.has(key);
             const isRedTerritory = territoryTiles.Red.has(key);
             const isBlueTerritory = territoryTiles.Blue.has(key);
@@ -213,6 +228,8 @@ const Board: React.FC = () => {
             let fillColor = pathData.fill; // Default fill
             if (isSelected) {
               fillColor = "rgba(234, 179, 8, 0.5)"; // yellow-500/50
+            } else if (isValidPlacement) {
+              fillColor = "rgba(167, 139, 250, 0.4)"; // violet-400/40
             } else if (isValidMove || isValidResurrectionMove) {
               fillColor = "rgba(34, 197, 94, 0.4)"; // green-500/40
             } else if (isEmbassy) {

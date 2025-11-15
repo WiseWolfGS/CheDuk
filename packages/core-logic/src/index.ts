@@ -1,5 +1,12 @@
 import { COLS, ROWS } from "@cheduk/geometry-hex";
-import { isInsideBoard, step, getTile, ALL_DIRECTIONS } from "./moves/utils";
+import {
+  isInsideBoard,
+  step,
+  getTile,
+  ALL_DIRECTIONS,
+  offsetToCube,
+  cubeDistance,
+} from "./moves/utils";
 
 import type {
   BoardKey,
@@ -97,55 +104,58 @@ const setPiece = (board: BoardState, coord: HexCoord, piece: Piece): void => {
 
 const getTerritories = (
   board: BoardState,
-  embassyLocations: EmbassyMap,
+  embassyLocations: Partial<EmbassyMap>,
 ): Record<Player, HexCoord[]> => {
   const territories: Record<Player, HexCoord[]> = { Red: [], Blue: [] };
   const redEmbassy = embassyLocations.Red;
   const blueEmbassy = embassyLocations.Blue;
 
-  const blueDirection = "NE";
-  let blueCurrent: HexCoord = blueEmbassy;
-  const redDirection = "SW";
-  let redCurrent: HexCoord = redEmbassy;
-
   // Blue territory rule
-  while (true) {
-    if (!isInsideBoard(board, blueCurrent)) break;
+  if (blueEmbassy) {
+    const blueDirection = "NE";
+    let blueCurrent: HexCoord = blueEmbassy;
+    while (true) {
+      if (!isInsideBoard(board, blueCurrent)) break;
 
-    const blueDestination = getTile(board, blueCurrent);
-    if (!blueDestination) break;
+      const blueDestination = getTile(board, blueCurrent);
+      if (!blueDestination) break;
 
-    territories.Blue.push(blueDestination);
+      territories.Blue.push(blueDestination);
 
-    let q = blueDestination.q;
-    let r = blueDestination.r;
+      let q = blueDestination.q;
+      let r = blueDestination.r;
 
-    while (q > 0) {
-      q -= 1;
-      territories.Blue.push({ q, r });
+      while (q > 0) {
+        q -= 1;
+        territories.Blue.push({ q, r });
+      }
+
+      blueCurrent = step(blueCurrent, blueDirection);
     }
-
-    blueCurrent = step(blueCurrent, blueDirection);
   }
 
   // Red territory rule
-  while (true) {
-    if (!isInsideBoard(board, redCurrent)) break;
+  if (redEmbassy) {
+    const redDirection = "SW";
+    let redCurrent: HexCoord = redEmbassy;
+    while (true) {
+      if (!isInsideBoard(board, redCurrent)) break;
 
-    const redDestination = getTile(board, redCurrent);
-    if (!redDestination) break;
+      const redDestination = getTile(board, redCurrent);
+      if (!redDestination) break;
 
-    territories.Red.push(redDestination);
+      territories.Red.push(redDestination);
 
-    let q = redDestination.q;
-    let r = redDestination.r;
+      let q = redDestination.q;
+      let r = redDestination.r;
 
-    while (q < 11) {
-      q += 1;
-      territories.Red.push({ q, r });
+      while (q < 11) {
+        q += 1;
+        territories.Red.push({ q, r });
+      }
+
+      redCurrent = step(redCurrent, redDirection);
     }
-
-    redCurrent = step(redCurrent, redDirection);
   }
 
   return territories;
@@ -160,6 +170,7 @@ export const createInitialGameState = (): GameState => {
     }
   }
 
+  // Fixed pieces
   setPiece(board, { q: 0, r: 2 }, createPiece("B_Guard_1", "Guard", "Blue"));
   setPiece(board, { q: 0, r: 4 }, createPiece("B_Diplomat_1", "Diplomat", "Blue"));
   setPiece(board, { q: 0, r: 0 }, createPiece("B_Chief_1", "Chief", "Blue"));
@@ -172,41 +183,43 @@ export const createInitialGameState = (): GameState => {
   setPiece(board, { q: 9, r: 11 }, createPiece("R_SpecialEnvoy_1", "SpecialEnvoy", "Red"));
   setPiece(board, { q: 10, r: 10 }, createPiece("R_SpecialEnvoy_2", "SpecialEnvoy", "Red"));
 
-  setPiece(board, { q: 3, r: 6 }, createPiece("B_Ambassador_1", "Ambassador", "Blue"));
-  setPiece(board, { q: 2, r: 6 }, createPiece("B_Spy_1", "Spy", "Blue"));
-  setPiece(board, { q: 3, r: 5 }, createPiece("B_Spy_2", "Spy", "Blue"));
-  setPiece(board, { q: 4, r: 4 }, createPiece("B_Spy_3", "Spy", "Blue"));
-  setPiece(board, { q: 5, r: 1 }, createPiece("B_Spy_4", "Spy", "Blue"));
-  setPiece(board, { q: 6, r: 0 }, createPiece("B_Spy_5", "Spy", "Blue"));
-
-  setPiece(board, { q: 7, r: 5 }, createPiece("R_Ambassador_1", "Ambassador", "Red"));
-  setPiece(board, { q: 6, r: 7 }, createPiece("R_Spy_1", "Spy", "Red"));
-  setPiece(board, { q: 7, r: 6 }, createPiece("R_Spy_2", "Spy", "Red"));
-  setPiece(board, { q: 8, r: 5 }, createPiece("R_Spy_3", "Spy", "Red"));
-  setPiece(board, { q: 4, r: 11 }, createPiece("R_Spy_4", "Spy", "Red"));
-  setPiece(board, { q: 5, r: 10 }, createPiece("R_Spy_5", "Spy", "Red"));
-
-  const embassyLocations: EmbassyMap = {
-    Blue: { q: 3, r: 6 },
-    Red: { q: 7, r: 5 },
+  // Unplaced pieces
+  const unplacedPieces: PieceCollection = {
+    Red: [
+      createPiece("R_Ambassador_1", "Ambassador", "Red"),
+      createPiece("R_Spy_1", "Spy", "Red"),
+      createPiece("R_Spy_2", "Spy", "Red"),
+      createPiece("R_Spy_3", "Spy", "Red"),
+      createPiece("R_Spy_4", "Spy", "Red"),
+      createPiece("R_Spy_5", "Spy", "Red"),
+    ],
+    Blue: [
+      createPiece("B_Ambassador_1", "Ambassador", "Blue"),
+      createPiece("B_Spy_1", "Spy", "Blue"),
+      createPiece("B_Spy_2", "Spy", "Blue"),
+      createPiece("B_Spy_3", "Spy", "Blue"),
+      createPiece("B_Spy_4", "Spy", "Blue"),
+      createPiece("B_Spy_5", "Spy", "Blue"),
+    ],
   };
-
-  const territories = getTerritories(board, embassyLocations);
 
   return {
     board,
+    gamePhase: "placement-ambassador-red",
     currentPlayer: "Red",
     turn: 0,
     infoScores: { Red: 0, Blue: 0 },
-    capturedPieces: { Red: [], Blue: [] },
-    embassyLocations,
+    capturedPieces: { Red: [] as Piece[], Blue: [] as Piece[] },
+    unplacedPieces,
+    embassyLocations: {},
     embassyFirstCapture: { Red: false, Blue: false },
-    territories,
+    territories: { Red: [], Blue: [] },
     infoGatheredTiles: [],
     spiesReadyToReturn: [],
     gameOver: false,
     winner: null,
-    returningSpies: [],
+    returningSpies: [] as Piece[],
+    mainGameFirstPlayer: null,
   };
 };
 
@@ -224,16 +237,18 @@ const createMoveGeneratorArgs = (
 
 const createFallbackState = (
   board: BoardState,
-  embassyLocations: EmbassyMap,
+  embassyLocations: Partial<EmbassyMap>,
   piece: Piece,
 ): GameState => {
   const territories = getTerritories(board, embassyLocations);
   return {
     board,
+    gamePhase: "main", // Assume main phase for fallback action generation
     currentPlayer: piece.player,
     turn: 0,
     infoScores: { Red: 0, Blue: 0 },
-    capturedPieces: { Red: [], Blue: [] },
+    capturedPieces: { Red: [] as Piece[], Blue: [] as Piece[] },
+    unplacedPieces: { Red: [] as Piece[], Blue: [] as Piece[] },
     embassyLocations,
     embassyFirstCapture: { Red: false, Blue: false },
     territories,
@@ -241,17 +256,70 @@ const createFallbackState = (
     spiesReadyToReturn: [],
     gameOver: false,
     winner: null,
-    returningSpies: [],
+    returningSpies: [] as Piece[],
+    mainGameFirstPlayer: null,
   };
 };
+
+import { AMBASSADOR_PLACEMENT_ZONES, SPY_PLACEMENT_ZONES } from "./placement";
 
 export const getValidActions = (
   board: BoardState,
   q: number,
   r: number,
-  embassyLocations: EmbassyMap,
+  embassyLocations: Partial<EmbassyMap>,
   gameState?: GameState,
 ): GameAction[] => {
+  // --- Placement Phase ---
+  if (gameState && gameState.gamePhase.startsWith("placement")) {
+    const player = gameState.currentPlayer;
+    const placementActions: GameAction[] = [];
+
+    switch (gameState.gamePhase) {
+      case "placement-ambassador-red":
+      case "placement-ambassador-blue": {
+        const validTiles = AMBASSADOR_PLACEMENT_ZONES[player];
+        for (const tile of validTiles) {
+          if (!getTile(board, tile)?.piece) {
+            placementActions.push({
+              type: "placeAmbassador",
+              to: tile,
+              player,
+            });
+          }
+        }
+        return placementActions;
+      }
+      case "placement-spy-red":
+      case "placement-spy-blue": {
+        const unplacedSpies = gameState.unplacedPieces[player].filter(
+          (p) => p.type === "Spy",
+        );
+        if (unplacedSpies.length === 0) return [];
+
+        const pieceToPlace = unplacedSpies[0];
+        const validTiles = SPY_PLACEMENT_ZONES[player].filter((zoneTile) =>
+          gameState.territories[player].some(
+            (territoryTile) =>
+              zoneTile.q === territoryTile.q && zoneTile.r === territoryTile.r,
+          ),
+        );
+
+        for (const tile of validTiles) {
+          if (!getTile(board, tile)?.piece) {
+            placementActions.push({
+              type: "placeSpy",
+              to: tile,
+              player,
+              pieceId: pieceToPlace.id,
+            });
+          }
+        }
+        return placementActions;
+      }
+    }
+  }
+
   const key = toBoardKey({ q, r });
   const tile = board[key];
   const piece = tile?.piece;
@@ -286,13 +354,13 @@ export const getValidActions = (
 
     if (capturedAmbassador) {
       const embassyTile = getTile(
-        gameState.board,
-        gameState.embassyLocations[player],
+        board,
+        gameState.embassyLocations[player] as HexCoord,
       );
       if (embassyTile && !embassyTile.piece) {
         specialActions.push({
           type: "resurrect",
-          to: gameState.embassyLocations[player],
+          to: gameState.embassyLocations[player] as HexCoord,
           pieceId: capturedAmbassador.id,
         });
       }
@@ -429,15 +497,22 @@ const applyAction = (gameState: GameState, action: GameAction): GameState => {
           //    No change to movingPiece's position or targetPiece's position on board
 
           finalUpdatedState = {
-            ...gameState,
             board,
             capturedPieces,
-            infoScores, // No change to infoScores for this event
-            embassyFirstCapture, // No change
-            currentPlayer: opponent, // Turn switches
+            infoScores,
+            embassyFirstCapture,
+            currentPlayer: opponent,
             turn: gameState.turn + 1,
-            gameOver: false, // Chief was not captured
+            gameOver: false,
             winner: null,
+            gamePhase: gameState.gamePhase,
+            unplacedPieces: gameState.unplacedPieces,
+            embassyLocations: gameState.embassyLocations,
+            territories: gameState.territories,
+            infoGatheredTiles: gameState.infoGatheredTiles,
+            spiesReadyToReturn: gameState.spiesReadyToReturn,
+            returningSpies: gameState.returningSpies,
+            mainGameFirstPlayer: gameState.mainGameFirstPlayer,
           };
           // Skip normal move logic below
         } else {
@@ -446,24 +521,35 @@ const applyAction = (gameState: GameState, action: GameAction): GameState => {
           board[fromKey].piece = null; // Remove movingPiece from origin
           board[toKey].piece = { ...movingPiece }; // Place movingPiece at target
 
-          finalUpdatedState = {
-            ...gameState,
+          const tempState: GameState = {
             board,
             capturedPieces,
             infoScores,
             embassyFirstCapture,
+            gamePhase: gameState.gamePhase,
+            currentPlayer: gameState.currentPlayer,
+            turn: gameState.turn,
+            unplacedPieces: gameState.unplacedPieces,
+            embassyLocations: gameState.embassyLocations,
+            territories: gameState.territories,
+            infoGatheredTiles: gameState.infoGatheredTiles,
+            spiesReadyToReturn: gameState.spiesReadyToReturn,
+            returningSpies: gameState.returningSpies,
+            mainGameFirstPlayer: gameState.mainGameFirstPlayer,
+            gameOver: gameState.gameOver,
+            winner: gameState.winner,
           };
 
-          const victory = checkVictory(finalUpdatedState);
+          const victory = checkVictory(tempState);
           if (victory.gameOver) {
             finalUpdatedState = {
-              ...finalUpdatedState,
+              ...tempState,
               gameOver: true,
               winner: victory.winner,
             };
           } else {
             finalUpdatedState = {
-              ...finalUpdatedState,
+              ...tempState,
               currentPlayer: opponent,
               turn: gameState.turn + 1,
               gameOver: false,
@@ -484,32 +570,43 @@ const applyAction = (gameState: GameState, action: GameAction): GameState => {
         // Spy embassy capture bonus
         if (
           movingPiece.type === "Spy" &&
-          to.q === gameState.embassyLocations[opponent].q &&
-          to.r === gameState.embassyLocations[opponent].r &&
+          to.q === gameState.embassyLocations[opponent]?.q &&
+          to.r === gameState.embassyLocations[opponent]?.r &&
           !embassyFirstCapture[opponent]
         ) {
           infoScores[gameState.currentPlayer] += 1;
           embassyFirstCapture[opponent] = true;
         }
 
-        finalUpdatedState = {
-          ...gameState,
+        const tempState: GameState = {
           board,
           capturedPieces,
           infoScores,
           embassyFirstCapture,
+          gamePhase: gameState.gamePhase,
+          currentPlayer: gameState.currentPlayer,
+          turn: gameState.turn,
+          unplacedPieces: gameState.unplacedPieces,
+          embassyLocations: gameState.embassyLocations,
+          territories: gameState.territories,
+          infoGatheredTiles: gameState.infoGatheredTiles,
+          spiesReadyToReturn: gameState.spiesReadyToReturn,
+          returningSpies: gameState.returningSpies,
+          mainGameFirstPlayer: gameState.mainGameFirstPlayer,
+          gameOver: gameState.gameOver,
+          winner: gameState.winner,
         };
 
-        const victory = checkVictory(finalUpdatedState);
+        const victory = checkVictory(tempState);
         if (victory.gameOver) {
           finalUpdatedState = {
-            ...finalUpdatedState,
+            ...tempState,
             gameOver: true,
             winner: victory.winner,
           };
         } else {
           finalUpdatedState = {
-            ...finalUpdatedState,
+            ...tempState,
             currentPlayer: opponent,
             turn: gameState.turn + 1,
             gameOver: false,
@@ -519,6 +616,159 @@ const applyAction = (gameState: GameState, action: GameAction): GameState => {
       }
 
       return finalUpdatedState;
+    }
+
+    case "placeAmbassador": {
+      const { to, player } = action;
+      const { unplacedPieces, embassyLocations } = gameState;
+
+      const ambassador = unplacedPieces[player].find(
+        (p) => p.type === "Ambassador",
+      );
+      if (!ambassador) return gameState;
+
+      const nextBoard = cloneBoard(gameState.board);
+      setPiece(nextBoard, to, ambassador);
+
+      const nextUnplaced = clonePieceCollection(unplacedPieces);
+      nextUnplaced[player] = nextUnplaced[player].filter(
+        (p) => p.id !== ambassador.id,
+      );
+
+      const nextEmbassyLocations = { ...embassyLocations, [player]: to };
+
+      // Transition to next phase
+      if (gameState.gamePhase === "placement-ambassador-red") {
+        return {
+          ...gameState,
+          board: nextBoard,
+          unplacedPieces: nextUnplaced,
+          embassyLocations: nextEmbassyLocations,
+          gamePhase: "placement-ambassador-blue",
+          currentPlayer: "Blue",
+        };
+      } else {
+        // Blue has placed, now determine who places spies first
+        if (!nextEmbassyLocations.Red || !nextEmbassyLocations.Blue) {
+          // This case should not be reachable if placement phases are correct
+          return gameState;
+        }
+
+        const RED_CENTER_OFFSET = { q: 5, r: 5 };
+        const BLUE_CENTER_OFFSET = { q: 5, r: 6 };
+
+        const redCube = offsetToCube(nextEmbassyLocations.Red);
+        const blueCube = offsetToCube(nextEmbassyLocations.Blue);
+
+        const redCenterCube = offsetToCube(RED_CENTER_OFFSET);
+        const blueCenterCube = offsetToCube(BLUE_CENTER_OFFSET);
+
+        const redDist = cubeDistance(redCube, redCenterCube);
+        const blueDist = cubeDistance(blueCube, blueCenterCube);
+        
+        let mainGameFirstPlayer: Player | null = null;
+        let spyPlacementFirstPlayer: Player;
+
+        if (redDist !== blueDist) {
+          mainGameFirstPlayer = redDist < blueDist ? "Red" : "Blue";
+          spyPlacementFirstPlayer = getOpponent(mainGameFirstPlayer);
+        } else {
+          // Tie in ambassador distance. Spy placement starts with Blue by default.
+          // Final first player will be determined after spy placement.
+          spyPlacementFirstPlayer = "Blue";
+        }
+
+        const nextTerritories = getTerritories(nextBoard, nextEmbassyLocations);
+
+        return {
+          ...gameState,
+          board: nextBoard,
+          unplacedPieces: nextUnplaced,
+          embassyLocations: nextEmbassyLocations,
+          territories: nextTerritories,
+          gamePhase: `placement-spy-${spyPlacementFirstPlayer.toLowerCase() as 'red' | 'blue'}`,
+          currentPlayer: spyPlacementFirstPlayer,
+          mainGameFirstPlayer,
+        };
+      }
+    }
+
+    case "placeSpy": {
+      const { to, player, pieceId } = action;
+      const { unplacedPieces } = gameState;
+
+      const spy = unplacedPieces[player].find((p) => p.id === pieceId);
+      if (!spy) return gameState;
+
+      const nextBoard = cloneBoard(gameState.board);
+      setPiece(nextBoard, to, spy);
+
+      const nextUnplaced = clonePieceCollection(unplacedPieces);
+      nextUnplaced[player] = nextUnplaced[player].filter((p) => p.id !== spy.id);
+
+      const opponent = getOpponent(player);
+      const opponentSpiesLeft = nextUnplaced[opponent].filter(p => p.type === 'Spy').length;
+      const mySpiesLeft = nextUnplaced[player].filter(p => p.type === 'Spy').length;
+
+      let nextPhase = gameState.gamePhase;
+      let nextPlayer = gameState.currentPlayer;
+
+      // Alternate turns as long as the opponent has spies to place.
+      if (opponentSpiesLeft > 0) {
+        nextPlayer = opponent;
+        nextPhase = `placement-spy-${opponent.toLowerCase() as 'red' | 'blue'}`;
+      } 
+      // If opponent is done but current player is not, current player continues.
+      else if (mySpiesLeft > 0) {
+        nextPlayer = player;
+        nextPhase = `placement-spy-${player.toLowerCase() as 'red' | 'blue'}`;
+      } 
+      // If both players have no spies left, end placement phase.
+      else {
+        nextPhase = 'main';
+        if (gameState.mainGameFirstPlayer) {
+          // First player was already determined by ambassador distance.
+          nextPlayer = gameState.mainGameFirstPlayer;
+        } else {
+          // Ambassador distances were a tie, decide by spy distances.
+          const RED_CENTER_CUBE = offsetToCube({ q: 5, r: 5 });
+          const BLUE_CENTER_CUBE = offsetToCube({ q: 5, r: 6 });
+          let redSpyDistTotal = 0;
+          let blueSpyDistTotal = 0;
+
+          for (const tile of Object.values(nextBoard)) { // Use nextBoard
+            if (tile.piece?.type === 'Spy') {
+              const pieceCube = offsetToCube(tile);
+              if (tile.piece.player === 'Red') {
+                redSpyDistTotal += cubeDistance(pieceCube, RED_CENTER_CUBE);
+              } else {
+                blueSpyDistTotal += cubeDistance(pieceCube, BLUE_CENTER_CUBE);
+              }
+            }
+          }
+          nextPlayer = blueSpyDistTotal < redSpyDistTotal ? 'Blue' : 'Red';
+        }
+      }
+
+      return {
+        // Explicitly construct the new state to prevent lost properties
+        board: nextBoard,
+        gamePhase: nextPhase,
+        currentPlayer: nextPlayer,
+        unplacedPieces: nextUnplaced,
+        turn: gameState.turn,
+        infoScores: gameState.infoScores,
+        capturedPieces: gameState.capturedPieces,
+        embassyLocations: gameState.embassyLocations,
+        embassyFirstCapture: gameState.embassyFirstCapture,
+        territories: gameState.territories,
+        infoGatheredTiles: gameState.infoGatheredTiles,
+        spiesReadyToReturn: gameState.spiesReadyToReturn,
+        returningSpies: gameState.returningSpies,
+        mainGameFirstPlayer: gameState.mainGameFirstPlayer,
+        gameOver: gameState.gameOver,
+        winner: gameState.winner,
+      };
     }
 
     case "gatherInfo": {

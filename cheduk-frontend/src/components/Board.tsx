@@ -236,12 +236,20 @@ const Board: React.FC = () => {
                 {tile.piece && (
                   // We need to counteract the rotation of the parent <g>
                   // to keep the piece upright.
-                  <g transform={`rotate(-90, ${center.x}, ${center.y})`}>
+                  <g
+                    transform={`rotate(-90, ${center.x}, ${center.y})`}
+                    className="cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent the path's onClick from firing too
+                      handleTileClick(tile);
+                    }}
+                  >
                     <foreignObject
                       x={center.x - 24}
                       y={center.y - 24}
                       width="48"
                       height="48"
+                      style={{ pointerEvents: "none" }} // Make foreignObject transparent to clicks
                     >
                       <PieceComponent piece={tile.piece} />
                     </foreignObject>

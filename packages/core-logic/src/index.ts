@@ -266,13 +266,18 @@ const recomputeEmbassyState = (
   };
 
   for (const owner of PLAYERS) {
-    const prevOccupant = prevState.embassyOccupation[owner];
     const newOccupant = nextOccupation[owner];
+    const prevRecapture = prevState.embassyRecaptureTurn[owner];
+    const embassyCoord = embassyLocations[owner];
+    const embassyTile = embassyCoord ? getTile(board, embassyCoord) : undefined;
+    const friendlyOnEmbassy = embassyTile?.piece?.player === owner;
 
     if (newOccupant) {
-      nextRecaptureTurn[owner] = null;
-    } else if (prevOccupant && !newOccupant && actor === owner) {
+      nextRecaptureTurn[owner] = -1;
+    } else if (friendlyOnEmbassy && prevRecapture === -1) {
       nextRecaptureTurn[owner] = resultingTurn;
+    } else {
+      nextRecaptureTurn[owner] = prevRecapture;
     }
   }
 
@@ -503,7 +508,8 @@ export const getValidActions = (
       const embassyTile = getTile(board, embassyCoord);
       const recaptureTurn = gameState.embassyRecaptureTurn[player];
       const canUseRevival =
-        recaptureTurn === null || gameState.turn > recaptureTurn;
+        recaptureTurn !== -1 &&
+        (recaptureTurn === null || gameState.turn > recaptureTurn);
       if (embassyTile && !embassyTile.piece && canUseRevival) {
         specialActions.push({
           type: "resurrect",

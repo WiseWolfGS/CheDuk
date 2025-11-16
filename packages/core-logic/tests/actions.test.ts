@@ -402,6 +402,76 @@ describe("core-logic actions", () => {
     expect(cooldownResult.capturedPieces.Red).toHaveLength(1);
     expect(cooldownResult.board[toBoardKey(cooldownEmbassy)].piece).toBeNull();
   });
+
+  it("requires friendly reoccupation before allowing ambassador resurrection", () => {
+    let state = createTestGameState();
+    const blueEmbassy = state.embassyLocations.Blue!;
+
+    const redGuardStart = { q: blueEmbassy.q, r: blueEmbassy.r + 1 } satisfies HexCoord;
+    placePiece(state, redGuardStart, {
+      id: "R_Guard_Recapture",
+      type: "Guard",
+      player: "Red",
+    });
+
+    state.currentPlayer = "Red";
+    const occupyAction = getValidActions(
+      state.board,
+      redGuardStart.q,
+      redGuardStart.r,
+      state.embassyLocations,
+      state,
+    ).find(
+      (action) =>
+        action.type === "move" &&
+        action.to.q === blueEmbassy.q &&
+        action.to.r === blueEmbassy.r,
+    )!;
+    state = performAction(state, occupyAction);
+
+    expect(state.embassyOccupation.Blue).toBe("Red");
+    expect(state.embassyRecaptureTurn.Blue).toBe(-1);
+
+    state.currentPlayer = "Red";
+    const leaveAction = getValidActions(
+      state.board,
+      blueEmbassy.q,
+      blueEmbassy.r,
+      state.embassyLocations,
+      state,
+    ).find(
+      (action) =>
+        action.type === "move" &&
+        !(action.to.q === blueEmbassy.q && action.to.r === blueEmbassy.r),
+    )!;
+    state = performAction(state, leaveAction);
+    expect(state.embassyRecaptureTurn.Blue).toBe(-1);
+
+    const blueGuardStart = { q: blueEmbassy.q, r: blueEmbassy.r - 1 } satisfies HexCoord;
+    placePiece(state, blueGuardStart, {
+      id: "B_Guard_Recapture",
+      type: "Guard",
+      player: "Blue",
+    });
+
+    state.currentPlayer = "Blue";
+    const reclaimAction = getValidActions(
+      state.board,
+      blueGuardStart.q,
+      blueGuardStart.r,
+      state.embassyLocations,
+      state,
+    ).find(
+      (action) =>
+        action.type === "move" &&
+        action.to.q === blueEmbassy.q &&
+        action.to.r === blueEmbassy.r,
+    )!;
+    state = performAction(state, reclaimAction);
+
+    expect(state.embassyOccupation.Blue).toBeNull();
+    expect(state.embassyRecaptureTurn.Blue).toBe(state.turn);
+  });
   });
 
   describe("Spy special actions", () => {

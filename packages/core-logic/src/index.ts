@@ -74,7 +74,7 @@ const cloneInfoTrack = (track: InfoScoreTrack): InfoScoreTrack => ({
   Blue: track.Blue,
 });
 
-const coordsEqual = (a?: HexCoord, b?: HexCoord): boolean =>
+const coordsEqual = (a?: HexCoord | null, b?: HexCoord | null): boolean =>
   Boolean(a && b && a.q === b.q && a.r === b.r);
 
 const getOpponent = (player: Player): Player => (player === "Red" ? "Blue" : "Red");
@@ -253,7 +253,6 @@ const recomputeEmbassyState = (
   prevState: GameState,
   board: BoardState,
   resultingTurn: number,
-  actor: Player,
   embassyLocations: Partial<EmbassyMap>,
 ): {
   embassyOccupation: Record<Player, Player | null>;
@@ -288,13 +287,11 @@ const applyEmbassyUpdates = (
   prevState: GameState,
   draftState: GameState,
   board: BoardState,
-  actor: Player,
 ): GameState => {
   const { embassyOccupation, embassyRecaptureTurn } = recomputeEmbassyState(
     prevState,
     board,
     draftState.turn,
-    actor,
     draftState.embassyLocations,
   );
 
@@ -805,12 +802,7 @@ const applyAction = (gameState: GameState, action: GameAction): GameState => {
         }
       }
 
-      return applyEmbassyUpdates(
-        gameState,
-        finalUpdatedState,
-        board,
-        gameState.currentPlayer,
-      );
+      return applyEmbassyUpdates(gameState, finalUpdatedState, board);
     }
 
     case "castle": {
@@ -876,7 +868,7 @@ const applyAction = (gameState: GameState, action: GameAction): GameState => {
         turn: gameState.turn + 1,
       };
 
-      return applyEmbassyUpdates(gameState, draftState, board, player);
+      return applyEmbassyUpdates(gameState, draftState, board);
     }
 
     case "placeAmbassador": {
@@ -908,7 +900,7 @@ const applyAction = (gameState: GameState, action: GameAction): GameState => {
           gamePhase: "placement-ambassador-blue",
           currentPlayer: "Blue",
         };
-        return applyEmbassyUpdates(gameState, draftState, nextBoard, player);
+        return applyEmbassyUpdates(gameState, draftState, nextBoard);
       } else {
         // Blue has placed, now determine who places spies first
         if (!nextEmbassyLocations.Red || !nextEmbassyLocations.Blue) {
@@ -952,7 +944,7 @@ const applyAction = (gameState: GameState, action: GameAction): GameState => {
           currentPlayer: spyPlacementFirstPlayer,
           mainGameFirstPlayer,
         };
-        return applyEmbassyUpdates(gameState, draftState, nextBoard, player);
+        return applyEmbassyUpdates(gameState, draftState, nextBoard);
       }
     }
 
@@ -1035,7 +1027,7 @@ const applyAction = (gameState: GameState, action: GameAction): GameState => {
         embassyOccupation: gameState.embassyOccupation,
         embassyRecaptureTurn: gameState.embassyRecaptureTurn,
       };
-      return applyEmbassyUpdates(gameState, draftState, nextBoard, player);
+      return applyEmbassyUpdates(gameState, draftState, nextBoard);
     }
 
     case "gatherInfo": {
@@ -1061,12 +1053,7 @@ const applyAction = (gameState: GameState, action: GameAction): GameState => {
         returningSpies: [...gameState.returningSpies, pieceToReturn],
       };
 
-      const stateWithEmbassy = applyEmbassyUpdates(
-        gameState,
-        updatedState,
-        board,
-        player,
-      );
+      const stateWithEmbassy = applyEmbassyUpdates(gameState, updatedState, board);
 
       const victory = checkVictory(stateWithEmbassy);
       if (victory.gameOver) {
@@ -1113,12 +1100,7 @@ const applyAction = (gameState: GameState, action: GameAction): GameState => {
         currentPlayer: getOpponent(gameState.currentPlayer),
         turn: gameState.turn + 1,
       };
-      return applyEmbassyUpdates(
-        gameState,
-        draftState,
-        board,
-        gameState.currentPlayer,
-      );
+      return applyEmbassyUpdates(gameState, draftState, board);
     }
 
     case "resurrect": {
@@ -1167,7 +1149,7 @@ const applyAction = (gameState: GameState, action: GameAction): GameState => {
         currentPlayer: opponent,
         turn: gameState.turn + 1,
       };
-      return applyEmbassyUpdates(gameState, draftState, board, player);
+      return applyEmbassyUpdates(gameState, draftState, board);
     }
 
     default:

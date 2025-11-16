@@ -1,6 +1,7 @@
 import GamePage from "./pages/GamePage";
 import { useGameStore } from "./store/gameStore";
 import ActionChoiceModal from "./components/ActionChoiceModal";
+import SpecialActionModal from "./components/SpecialActionModal";
 
 function App() {
   const {
@@ -26,6 +27,7 @@ function App() {
         onSelectMove={enterMoveMode}
         onCancel={cancelAction}
       />
+      <SpecialActionModal />
     </div>
   );
 }

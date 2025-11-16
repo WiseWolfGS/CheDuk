@@ -1,5 +1,6 @@
 import React from "react";
 import type { GameAction } from "@cheduk/core-logic";
+import { describeGameAction } from "../utils/actionLabels";
 
 interface ActionChoiceModalProps {
   isOpen: boolean;
@@ -8,19 +9,6 @@ interface ActionChoiceModalProps {
   onSelectMove: () => void;
   onCancel: () => void;
 }
-
-const getActionLabel = (action: GameAction): string => {
-  switch (action.type) {
-    case "move":
-      return `Move to (${action.to.q}, ${action.to.r})`;
-    case "gatherInfo":
-      return "Gather Information";
-    case "return":
-      return `Return to (${action.to.q}, ${action.to.r})`;
-    default:
-      return "Unknown Action";
-  }
-};
 
 const ActionChoiceModal: React.FC<ActionChoiceModalProps> = ({
   isOpen,
@@ -48,7 +36,7 @@ const ActionChoiceModal: React.FC<ActionChoiceModalProps> = ({
               onClick={() => onSelect(action)}
               className="rounded bg-green-600 px-4 py-2 text-white shadow-md transition-transform hover:scale-105 hover:bg-green-700"
             >
-              {getActionLabel(action)}
+              {describeGameAction(action)}
             </button>
           ))}
 
@@ -75,4 +63,3 @@ const ActionChoiceModal: React.FC<ActionChoiceModalProps> = ({
 };
 
 export default ActionChoiceModal;
-

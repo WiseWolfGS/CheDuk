@@ -31,6 +31,9 @@ const createTestGameState = (): GameState => {
     mainGameFirstPlayer: "Blue",
     gameOver: false,
     winner: null,
+    embassyOccupation: { Red: null, Blue: null },
+    embassyRecaptureTurn: { Red: null, Blue: null },
+    castlingUsed: { Red: false, Blue: false },
   };
 };
 
@@ -120,6 +123,21 @@ describe("core-logic actions", () => {
     expect(updated.currentPlayer).toBe("Red");
   });
 
+  it("grants information when any piece occupies the opposing embassy", () => {
+    const state = createTestGameState();
+    state.currentPlayer = "Blue";
+    const from = { q: 8, r: 7 } satisfies HexCoord;
+    const to = state.embassyLocations.Red!;
+
+    placePiece(state, from, { id: "B_Guard_2", type: "Guard", player: "Blue" });
+
+    const moveAction: GameAction = { type: 'move', from, to };
+    const updated = performAction(state, moveAction);
+
+    expect(updated.infoScores.Blue).toBe(1);
+    expect(updated.embassyFirstCapture.Red).toBe(true);
+  });
+
   it("allows diplomats to slide until blocked", () => {
     const state = createTestGameState();
 
@@ -194,6 +212,196 @@ describe("core-logic actions", () => {
       .filter(a => a.type === 'move');
 
     expect(fieldMoves.length).toBe(6);
+  });
+
+  it("prevents the Chief from leaving territory before castling", () => {
+    const state = createTestGameState();
+    state.currentPlayer = "Blue";
+    state.territories.Blue = [
+      { q: 5, r: 5 },
+      { q: 6, r: 5 },
+      { q: 5, r: 4 },
+    ];
+
+    const chiefPos = { q: 5, r: 5 } satisfies HexCoord;
+    placePiece(state, chiefPos, { id: "B_Chief", type: "Chief", player: "Blue" });
+
+    const restrictedActions = getValidActions(
+      state.board,
+      chiefPos.q,
+      chiefPos.r,
+      state.embassyLocations,
+      state,
+    );
+    const restrictedMoves = restrictedActions.filter((action) => action.type === "move");
+    expect(restrictedMoves).not.toContainEqual(expect.objectContaining({ to: { q: 4, r: 5 } }));
+    expect(restrictedMoves).toContainEqual(expect.objectContaining({ to: { q: 6, r: 5 } }));
+
+    state.castlingUsed.Blue = true;
+    const freedActions = getValidActions(
+      state.board,
+      chiefPos.q,
+      chiefPos.r,
+      state.embassyLocations,
+      state,
+    );
+    const freedMoves = freedActions.filter((action) => action.type === "move");
+    expect(freedMoves).toContainEqual(expect.objectContaining({ to: { q: 4, r: 5 } }));
+  });
+
+  describe("special rules", () => {
+    it("offers a castle action when path is clear", () => {
+      const state = createTestGameState();
+      state.currentPlayer = "Blue";
+
+      const chief = { q: 2, r: 4 } satisfies HexCoord;
+      const diplomat = { q: 6, r: 4 } satisfies HexCoord;
+      placePiece(state, chief, { id: "B_Chief", type: "Chief", player: "Blue" });
+      placePiece(state, diplomat, { id: "B_Diplomat_2", type: "Diplomat", player: "Blue" });
+
+      const actions = getValidActions(state.board, chief.q, chief.r, state.embassyLocations, state);
+      expect(actions).toContainEqual(expect.objectContaining({ type: 'castle', chief, diplomat }));
+    });
+
+    it("executes castling, swaps positions, and marks usage", () => {
+      const state = createTestGameState();
+      state.currentPlayer = "Blue";
+
+      const chief = { q: 2, r: 4 } satisfies HexCoord;
+      const diplomat = { q: 6, r: 4 } satisfies HexCoord;
+      placePiece(state, chief, { id: "B_Chief", type: "Chief", player: "Blue" });
+      placePiece(state, diplomat, { id: "B_Diplomat_2", type: "Diplomat", player: "Blue" });
+
+      const castleAction: GameAction = { type: 'castle', player: 'Blue', chief, diplomat };
+      const updated = performAction(state, castleAction);
+
+      expect(updated.board[toBoardKey(chief)].piece?.type).toBe("Diplomat");
+      expect(updated.board[toBoardKey(diplomat)].piece?.type).toBe("Chief");
+      expect(updated.castlingUsed.Blue).toBe(true);
+      expect(updated.currentPlayer).toBe("Red");
+
+      const followupActions = getValidActions(
+        updated.board,
+        diplomat.q,
+        diplomat.r,
+        updated.embassyLocations,
+        updated,
+      );
+      expect(followupActions.some(action => action.type === 'castle')).toBe(false);
+    });
+
+    it("grants information when castling lands on the opposing embassy", () => {
+      const state = createTestGameState();
+      state.currentPlayer = "Blue";
+      state.embassyLocations.Red = { q: 4, r: 4 };
+
+      const chief = { q: 0, r: 4 } satisfies HexCoord;
+      const diplomat = state.embassyLocations.Red!;
+      placePiece(state, chief, { id: "B_Chief", type: "Chief", player: "Blue" });
+      placePiece(state, diplomat, { id: "B_Diplomat_2", type: "Diplomat", player: "Blue" });
+
+      const castleAction: GameAction = {
+        type: 'castle',
+        player: 'Blue',
+        chief,
+        diplomat,
+      };
+
+      const updated = performAction(state, castleAction);
+      expect(updated.infoScores.Blue).toBe(1);
+      expect(updated.embassyFirstCapture.Red).toBe(true);
+    });
+
+    it("blocks special envoy jumps through an occupied enemy embassy", () => {
+      const state = createTestGameState();
+      state.currentPlayer = "Blue";
+      state.embassyLocations.Red = { q: 3, r: 5 };
+      state.embassyLocations.Blue = { q: 8, r: 2 };
+
+      const envoy = { q: 1, r: 5 } satisfies HexCoord;
+      placePiece(state, envoy, { id: "B_Envoy", type: "SpecialEnvoy", player: "Blue" });
+      placePiece(state, state.embassyLocations.Red!, { id: "B_Occupier", type: "Guard", player: "Blue" });
+      placePiece(state, { q: 5, r: 5 }, { id: "R_Target", type: "Spy", player: "Red" });
+
+      const actions = getValidActions(state.board, envoy.q, envoy.r, state.embassyLocations, state);
+      const moveActions = actions.filter(action => action.type === 'move');
+      expect(moveActions).not.toContainEqual(expect.objectContaining({ to: { q: 5, r: 5 } }));
+    });
+
+  it("offers ambassador resurrection only when the embassy is empty", () => {
+    const state = createTestGameState();
+    state.currentPlayer = "Blue";
+    const blueEmbassy = state.embassyLocations.Blue!;
+    const capturedAmbassador = { id: "B_Amb", type: "Ambassador" as PieceType, player: "Blue" as Player };
+
+      state.capturedPieces.Red.push(capturedAmbassador);
+
+      let actions = getValidActions(state.board, 0, 0, state.embassyLocations, state);
+      expect(actions).toContainEqual(
+        expect.objectContaining({ type: 'resurrect', pieceId: 'B_Amb', to: blueEmbassy }),
+      );
+
+      placePiece(state, blueEmbassy, { id: "B_Blocker", type: "Guard", player: "Blue" });
+    actions = getValidActions(state.board, 0, 0, state.embassyLocations, state);
+    expect(actions).not.toContainEqual(expect.objectContaining({ type: 'resurrect', pieceId: 'B_Amb' }));
+  });
+
+  it("revives the ambassador at the embassy and removes it from captured pieces", () => {
+    const state = createTestGameState();
+    state.currentPlayer = "Blue";
+    state.turn = 5;
+    const blueEmbassy = state.embassyLocations.Blue!;
+    const capturedAmbassador = { id: "B_Amb", type: "Ambassador" as PieceType, player: "Blue" as Player };
+    state.capturedPieces.Red.push(capturedAmbassador);
+    state.embassyRecaptureTurn.Blue = 2;
+
+    const resurrectAction: GameAction = {
+      type: 'resurrect',
+      to: blueEmbassy,
+      pieceId: 'B_Amb',
+    };
+
+    const updated = performAction(state, resurrectAction);
+    expect(updated.board[toBoardKey(blueEmbassy)].piece?.id).toBe('B_Amb');
+    expect(updated.capturedPieces.Red).toHaveLength(0);
+    expect(updated.currentPlayer).toBe('Red');
+  });
+
+  it("prevents ambassador resurrection when the embassy is occupied or not yet recaptured", () => {
+    const occupiedState = createTestGameState();
+    occupiedState.currentPlayer = "Blue";
+    const blueEmbassy = occupiedState.embassyLocations.Blue!;
+    occupiedState.capturedPieces.Red.push({
+      id: "B_Amb",
+      type: "Ambassador",
+      player: "Blue",
+    });
+
+    placePiece(occupiedState, blueEmbassy, { id: "B_Blocker", type: "Guard", player: "Blue" });
+    const action: GameAction = {
+      type: "resurrect",
+      to: blueEmbassy,
+      pieceId: "B_Amb",
+    };
+    const occupiedResult = performAction(occupiedState, action);
+    expect(occupiedResult.capturedPieces.Red).toHaveLength(1);
+    expect(occupiedResult.board[toBoardKey(blueEmbassy)].piece?.id).toBe("B_Blocker");
+
+    const cooldownState = createTestGameState();
+    cooldownState.currentPlayer = "Blue";
+    cooldownState.capturedPieces.Red.push({
+      id: "B_Amb",
+      type: "Ambassador",
+      player: "Blue",
+    });
+    const cooldownEmbassy = cooldownState.embassyLocations.Blue!;
+    cooldownState.board[toBoardKey(cooldownEmbassy)].piece = null;
+    cooldownState.embassyRecaptureTurn.Blue = cooldownState.turn + 1;
+
+    const cooldownResult = performAction(cooldownState, action);
+    expect(cooldownResult.capturedPieces.Red).toHaveLength(1);
+    expect(cooldownResult.board[toBoardKey(cooldownEmbassy)].piece).toBeNull();
+  });
   });
 
   describe("Spy special actions", () => {

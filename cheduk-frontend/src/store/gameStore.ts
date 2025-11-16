@@ -1,4 +1,10 @@
-import type { GameState, Tile, GameAction } from "@cheduk/core-logic";
+import type {
+  GameAction,
+  GameState,
+  PieceType,
+  Player,
+  Tile,
+} from "@cheduk/core-logic";
 import {
   createInitialGameState,
   getValidActions,
@@ -10,21 +16,94 @@ interface GameStore {
   gameState: GameState;
   selectedTile: Tile | null;
   validActions: GameAction[];
+  globalSpecialActions: GameAction[];
   isActionModalOpen: boolean;
   resurrectionState: {
     isResurrecting: boolean;
     pieceId: string | null;
   };
+  specialActionModal: {
+    isOpen: boolean;
+    options: SpecialActionOption[];
+  };
 
   handleTileClick: (clickedTile: Tile) => void;
   handleAction: (action: GameAction) => void;
   startResurrection: (pieceId: string) => void;
+  openSpecialActionModal: () => void;
+  closeSpecialActionModal: () => void;
   cancelAction: () => void;
   enterMoveMode: () => void;
   resetGame: () => void;
 }
 
 const initialGameState = createInitialGameState();
+const getOpponent = (player: Player): Player =>
+  player === "Red" ? "Blue" : "Red";
+
+const computeGlobalSpecialActions = (state: GameState): GameAction[] => {
+  const actions = getValidActions(
+    state.board,
+    -1,
+    -1,
+    state.embassyLocations,
+    state,
+  );
+  return actions.filter((action) => action.type === "resurrect");
+};
+
+export type SpecialActionOption =
+  | {
+      kind: "direct";
+      action: GameAction;
+      pieceId: string;
+      pieceType: PieceType;
+    }
+  | {
+      kind: "choose-destination";
+      pieceId: string;
+      pieceType: PieceType;
+    };
+
+const buildSpecialActionOptions = (
+  state: GameState,
+  actions: GameAction[],
+): SpecialActionOption[] => {
+  const options: SpecialActionOption[] = [];
+  const grouped = new Map<string, GameAction[]>();
+
+  actions.forEach((action) => {
+    if (action.type !== "resurrect") return;
+    if (!action.pieceId) return;
+    const list = grouped.get(action.pieceId) ?? [];
+    list.push(action);
+    grouped.set(action.pieceId, list);
+  });
+
+  const capturedByOpponent = state.capturedPieces[getOpponent(state.currentPlayer)];
+
+  grouped.forEach((list, pieceId) => {
+    const pieceType =
+      capturedByOpponent.find((piece) => piece.id === pieceId)?.type ?? "Spy";
+
+    if (list.length === 1) {
+      options.push({
+        kind: "direct",
+        action: list[0],
+        pieceId,
+        pieceType,
+      });
+    } else {
+      options.push({
+        kind: "choose-destination",
+        pieceId,
+        pieceType,
+      });
+    }
+  });
+  return options;
+};
+
 const initialValidActions = getValidActions(
   initialGameState.board,
   -1,
@@ -37,10 +116,15 @@ const initialState = {
   gameState: initialGameState,
   selectedTile: null,
   validActions: initialValidActions,
+  globalSpecialActions: computeGlobalSpecialActions(initialGameState),
   isActionModalOpen: false,
   resurrectionState: {
     isResurrecting: false,
     pieceId: null,
+  },
+  specialActionModal: {
+    isOpen: false,
+    options: [],
   },
 };
 
@@ -60,6 +144,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       gameState: newGameState,
       selectedTile: null,
       validActions: newValidActions,
+      globalSpecialActions: computeGlobalSpecialActions(newGameState),
+      specialActionModal: { isOpen: false, options: [] },
       isActionModalOpen: false,
       resurrectionState: { isResurrecting: false, pieceId: null },
     });
@@ -81,6 +167,28 @@ export const useGameStore = create<GameStore>((set, get) => ({
       validActions: actions.filter(
         (a) => a.type === "resurrect" && a.pieceId === pieceId,
       ),
+    });
+  },
+
+  openSpecialActionModal: () => {
+    const { globalSpecialActions, gameState } = get();
+    if (globalSpecialActions.length === 0) return;
+
+    const options = buildSpecialActionOptions(
+      gameState,
+      globalSpecialActions,
+    );
+    if (options.length === 0) return;
+
+    set({
+      selectedTile: null,
+      specialActionModal: { isOpen: true, options },
+    });
+  },
+
+  closeSpecialActionModal: () => {
+    set({
+      specialActionModal: { isOpen: false, options: [] },
     });
   },
 
@@ -230,6 +338,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       ...initialState,
       gameState: newInitialState,
       validActions: newInitialActions,
+      globalSpecialActions: computeGlobalSpecialActions(newInitialState),
     });
   },
 }));

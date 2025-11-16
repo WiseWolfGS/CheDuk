@@ -1,4 +1,4 @@
-import type { HexCoord, Piece } from "../types";
+import type { HexCoord, Piece, Player } from "../types";
 import {
   ALL_DIRECTIONS,
   getTile,
@@ -11,8 +11,11 @@ import type { MoveGenerator } from "./types";
 const canCapture = (piece: Piece, target: Piece): boolean =>
   isEnemy(piece, target) && target.type !== "Ambassador" && target.type !== "SpecialEnvoy";
 
-export const getSpecialEnvoyMoves: MoveGenerator = ({ board, origin, piece }) => {
+const getOpponent = (player: Player): Player => (player === "Red" ? "Blue" : "Red");
+
+export const getSpecialEnvoyMoves: MoveGenerator = ({ board, origin, piece, state }) => {
   const moves: HexCoord[] = [];
+  const enemyEmbassy = state.embassyLocations[getOpponent(piece.player)];
 
   for (const direction of ALL_DIRECTIONS) {
     let scout = origin;
@@ -26,6 +29,16 @@ export const getSpecialEnvoyMoves: MoveGenerator = ({ board, origin, piece }) =>
       if (!tile) break;
 
       if (tile.piece) {
+        if (
+          enemyEmbassy &&
+          tile.q === enemyEmbassy.q &&
+          tile.r === enemyEmbassy.r &&
+          tile.piece.player === piece.player
+        ) {
+          jumpedTile = null;
+          break;
+        }
+
         if (tile.piece.type !== "SpecialEnvoy") {
           jumpedTile = { coord: { ...scout }, occupant: tile.piece };
         }

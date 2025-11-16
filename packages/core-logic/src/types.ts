@@ -55,6 +55,8 @@ export interface GameState {
   unplacedPieces: PieceCollection;
   embassyLocations: Partial<EmbassyMap>;
   embassyFirstCapture: Record<Player, boolean>;
+  embassyOccupation: Record<Player, Player | null>;
+  embassyRecaptureTurn: Record<Player, number | null>;
   territories: Record<Player, HexCoord[]>;
   infoGatheredTiles: HexCoord[];
   spiesReadyToReturn: string[]; // pieceId[]
@@ -62,6 +64,7 @@ export interface GameState {
   mainGameFirstPlayer: Player | null;
   gameOver: boolean;
   winner: Player | null;
+  castlingUsed: Record<Player, boolean>;
 }
 
 export type MoveAction = {
@@ -101,10 +104,18 @@ export type PlaceSpyAction = {
   pieceId: string;
 };
 
+export type CastleAction = {
+  type: "castle";
+  player: Player;
+  chief: HexCoord;
+  diplomat: HexCoord;
+};
+
 export type GameAction =
   | MoveAction
   | GatherInfoAction
   | ReturnAction
   | ResurrectAction
   | PlaceAmbassadorAction
-  | PlaceSpyAction;
+  | PlaceSpyAction
+  | CastleAction;

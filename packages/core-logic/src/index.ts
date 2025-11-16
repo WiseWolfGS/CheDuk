@@ -7,6 +7,7 @@ import {
   offsetToCube,
   cubeDistance,
 } from "./moves/utils";
+import type { HexDirection, CubeCoord } from "./moves/utils";
 
 import type {
   BoardKey,
@@ -72,6 +73,9 @@ const cloneInfoTrack = (track: InfoScoreTrack): InfoScoreTrack => ({
   Red: track.Red,
   Blue: track.Blue,
 });
+
+const coordsEqual = (a?: HexCoord, b?: HexCoord): boolean =>
+  Boolean(a && b && a.q === b.q && a.r === b.r);
 
 const getOpponent = (player: Player): Player => (player === "Red" ? "Blue" : "Red");
 
@@ -161,6 +165,141 @@ const getTerritories = (
   return territories;
 };
 
+const DIRECTION_CUBE_VECTORS: Record<HexDirection, CubeCoord> = {
+  E: { x: 1, y: -1, z: 0 },
+  W: { x: -1, y: 1, z: 0 },
+  NE: { x: 1, y: 0, z: -1 },
+  SW: { x: -1, y: 0, z: 1 },
+  NW: { x: 0, y: 1, z: -1 },
+  SE: { x: 0, y: -1, z: 1 },
+};
+
+const getCastleVector = (
+  from: HexCoord,
+  to: HexCoord,
+): { direction: HexDirection; distance: number } | null => {
+  const fromCube = offsetToCube(from);
+  const toCube = offsetToCube(to);
+
+  const dx = toCube.x - fromCube.x;
+  const dy = toCube.y - fromCube.y;
+  const dz = toCube.z - fromCube.z;
+
+  const distance = Math.max(Math.abs(dx), Math.abs(dy), Math.abs(dz));
+  if (distance === 0) return null;
+
+  for (const direction of ALL_DIRECTIONS) {
+    const vector = DIRECTION_CUBE_VECTORS[direction];
+    if (
+      dx === vector.x * distance &&
+      dy === vector.y * distance &&
+      dz === vector.z * distance
+    ) {
+      return { direction, distance };
+    }
+  }
+
+  return null;
+};
+
+const isPathClear = (
+  board: BoardState,
+  origin: HexCoord,
+  direction: HexDirection,
+  distance: number,
+): boolean => {
+  let current = origin;
+  for (let steps = 1; steps < distance; steps += 1) {
+    current = step(current, direction);
+    const tile = getTile(board, current);
+    if (!tile || tile.piece) {
+      return false;
+    }
+  }
+  return true;
+};
+
+const findPieceCoord = (
+  board: BoardState,
+  predicate: (piece: Piece, tile: Tile) => boolean,
+): HexCoord | null => {
+  for (const tile of Object.values(board)) {
+    if (tile.piece && predicate(tile.piece, tile)) {
+      return { q: tile.q, r: tile.r };
+    }
+  }
+  return null;
+};
+
+const calculateEmbassyOccupation = (
+  board: BoardState,
+  embassyLocations: Partial<EmbassyMap>,
+): Record<Player, Player | null> => {
+  const occupancy: Record<Player, Player | null> = { Red: null, Blue: null };
+  for (const player of PLAYERS) {
+    const embassy = embassyLocations[player];
+    if (!embassy) continue;
+    const tile = getTile(board, embassy);
+    if (tile?.piece && tile.piece.player !== player) {
+      occupancy[player] = tile.piece.player;
+    } else {
+      occupancy[player] = null;
+    }
+  }
+  return occupancy;
+};
+
+const recomputeEmbassyState = (
+  prevState: GameState,
+  board: BoardState,
+  resultingTurn: number,
+  actor: Player,
+  embassyLocations: Partial<EmbassyMap>,
+): {
+  embassyOccupation: Record<Player, Player | null>;
+  embassyRecaptureTurn: Record<Player, number | null>;
+} => {
+  const nextOccupation = calculateEmbassyOccupation(board, embassyLocations);
+  const nextRecaptureTurn: Record<Player, number | null> = {
+    Red: prevState.embassyRecaptureTurn.Red,
+    Blue: prevState.embassyRecaptureTurn.Blue,
+  };
+
+  for (const owner of PLAYERS) {
+    const prevOccupant = prevState.embassyOccupation[owner];
+    const newOccupant = nextOccupation[owner];
+
+    if (newOccupant) {
+      nextRecaptureTurn[owner] = null;
+    } else if (prevOccupant && !newOccupant && actor === owner) {
+      nextRecaptureTurn[owner] = resultingTurn;
+    }
+  }
+
+  return { embassyOccupation: nextOccupation, embassyRecaptureTurn: nextRecaptureTurn };
+};
+
+const applyEmbassyUpdates = (
+  prevState: GameState,
+  draftState: GameState,
+  board: BoardState,
+  actor: Player,
+): GameState => {
+  const { embassyOccupation, embassyRecaptureTurn } = recomputeEmbassyState(
+    prevState,
+    board,
+    draftState.turn,
+    actor,
+    draftState.embassyLocations,
+  );
+
+  return {
+    ...draftState,
+    embassyOccupation,
+    embassyRecaptureTurn,
+  };
+};
+
 export const createInitialGameState = (): GameState => {
   const board: BoardState = {};
 
@@ -220,6 +359,9 @@ export const createInitialGameState = (): GameState => {
     winner: null,
     returningSpies: [] as Piece[],
     mainGameFirstPlayer: null,
+    castlingUsed: { Red: false, Blue: false },
+    embassyOccupation: { Red: null, Blue: null },
+    embassyRecaptureTurn: { Red: null, Blue: null },
   };
 };
 
@@ -241,6 +383,7 @@ const createFallbackState = (
   piece: Piece,
 ): GameState => {
   const territories = getTerritories(board, embassyLocations);
+  const embassyOccupation = calculateEmbassyOccupation(board, embassyLocations);
   return {
     board,
     gamePhase: "main", // Assume main phase for fallback action generation
@@ -251,6 +394,8 @@ const createFallbackState = (
     unplacedPieces: { Red: [] as Piece[], Blue: [] as Piece[] },
     embassyLocations,
     embassyFirstCapture: { Red: false, Blue: false },
+    embassyOccupation,
+    embassyRecaptureTurn: { Red: null, Blue: null },
     territories,
     infoGatheredTiles: [],
     spiesReadyToReturn: [],
@@ -258,6 +403,7 @@ const createFallbackState = (
     winner: null,
     returningSpies: [] as Piece[],
     mainGameFirstPlayer: null,
+    castlingUsed: { Red: false, Blue: false },
   };
 };
 
@@ -352,15 +498,16 @@ export const getValidActions = (
       }
     }
 
-    if (capturedAmbassador) {
-      const embassyTile = getTile(
-        board,
-        gameState.embassyLocations[player] as HexCoord,
-      );
-      if (embassyTile && !embassyTile.piece) {
+    if (capturedAmbassador && gameState.embassyLocations[player]) {
+      const embassyCoord = gameState.embassyLocations[player] as HexCoord;
+      const embassyTile = getTile(board, embassyCoord);
+      const recaptureTurn = gameState.embassyRecaptureTurn[player];
+      const canUseRevival =
+        recaptureTurn === null || gameState.turn > recaptureTurn;
+      if (embassyTile && !embassyTile.piece && canUseRevival) {
         specialActions.push({
           type: "resurrect",
-          to: gameState.embassyLocations[player] as HexCoord,
+          to: embassyCoord,
           pieceId: capturedAmbassador.id,
         });
       }
@@ -381,6 +528,35 @@ export const getValidActions = (
     : [];
 
   const specialActions: GameAction[] = [];
+
+  if (
+    gameState &&
+    state.gamePhase === "main" &&
+    !state.castlingUsed[piece.player] &&
+    piece.player === gameState.currentPlayer &&
+    (piece.type === "Chief" || piece.type === "Diplomat")
+  ) {
+    const partnerType = piece.type === "Chief" ? "Diplomat" : "Chief";
+    const partnerCoord = findPieceCoord(state.board, (candidate, _tile) => {
+      if (candidate.player !== piece.player) return false;
+      return candidate.type === partnerType;
+    });
+
+    if (partnerCoord) {
+      const vector = getCastleVector({ q, r }, partnerCoord);
+      if (vector && isPathClear(state.board, { q, r }, vector.direction, vector.distance)) {
+        const chiefCoord = piece.type === "Chief" ? { q, r } : partnerCoord;
+        const diplomatCoord = piece.type === "Diplomat" ? { q, r } : partnerCoord;
+        specialActions.push({
+          type: "castle",
+          player: piece.player,
+          chief: chiefCoord,
+          diplomat: diplomatCoord,
+        });
+      }
+    }
+  }
+
   if (piece.type === "Spy") {
     const opponent = getOpponent(piece.player);
 
@@ -513,6 +689,9 @@ const applyAction = (gameState: GameState, action: GameAction): GameState => {
             spiesReadyToReturn: gameState.spiesReadyToReturn,
             returningSpies: gameState.returningSpies,
             mainGameFirstPlayer: gameState.mainGameFirstPlayer,
+            castlingUsed: gameState.castlingUsed,
+            embassyOccupation: gameState.embassyOccupation,
+            embassyRecaptureTurn: gameState.embassyRecaptureTurn,
           };
           // Skip normal move logic below
         } else {
@@ -538,6 +717,9 @@ const applyAction = (gameState: GameState, action: GameAction): GameState => {
             mainGameFirstPlayer: gameState.mainGameFirstPlayer,
             gameOver: gameState.gameOver,
             winner: gameState.winner,
+            castlingUsed: gameState.castlingUsed,
+            embassyOccupation: gameState.embassyOccupation,
+            embassyRecaptureTurn: gameState.embassyRecaptureTurn,
           };
 
           const victory = checkVictory(tempState);
@@ -569,7 +751,6 @@ const applyAction = (gameState: GameState, action: GameAction): GameState => {
 
         // Spy embassy capture bonus
         if (
-          movingPiece.type === "Spy" &&
           to.q === gameState.embassyLocations[opponent]?.q &&
           to.r === gameState.embassyLocations[opponent]?.r &&
           !embassyFirstCapture[opponent]
@@ -595,6 +776,9 @@ const applyAction = (gameState: GameState, action: GameAction): GameState => {
           mainGameFirstPlayer: gameState.mainGameFirstPlayer,
           gameOver: gameState.gameOver,
           winner: gameState.winner,
+          castlingUsed: gameState.castlingUsed,
+          embassyOccupation: gameState.embassyOccupation,
+          embassyRecaptureTurn: gameState.embassyRecaptureTurn,
         };
 
         const victory = checkVictory(tempState);
@@ -615,7 +799,78 @@ const applyAction = (gameState: GameState, action: GameAction): GameState => {
         }
       }
 
-      return finalUpdatedState;
+      return applyEmbassyUpdates(
+        gameState,
+        finalUpdatedState,
+        board,
+        gameState.currentPlayer,
+      );
+    }
+
+    case "castle": {
+      const { chief, diplomat, player } = action;
+      if (player !== gameState.currentPlayer) return gameState;
+      if (gameState.castlingUsed[player]) return gameState;
+
+      const chiefTile = gameState.board[toBoardKey(chief)];
+      const diplomatTile = gameState.board[toBoardKey(diplomat)];
+      if (!chiefTile?.piece || !diplomatTile?.piece) return gameState;
+
+      if (
+        chiefTile.piece.player !== player ||
+        diplomatTile.piece.player !== player ||
+        chiefTile.piece.type !== "Chief" ||
+        diplomatTile.piece.type !== "Diplomat"
+      ) {
+        return gameState;
+      }
+
+      const vector = getCastleVector(chief, diplomat);
+      if (!vector) return gameState;
+      if (!isPathClear(gameState.board, chief, vector.direction, vector.distance)) {
+        return gameState;
+      }
+
+      const board = cloneBoard(gameState.board);
+      const chiefPiece = { ...chiefTile.piece };
+      const diplomatPiece = { ...diplomatTile.piece };
+
+      board[toBoardKey(chief)].piece = diplomatPiece;
+      board[toBoardKey(diplomat)].piece = chiefPiece;
+
+      const infoScores = cloneInfoTrack(gameState.infoScores);
+      const embassyFirstCapture = { ...gameState.embassyFirstCapture };
+      const opponent = getOpponent(player);
+      const enemyEmbassy = gameState.embassyLocations[opponent];
+      const newChiefCoord = diplomat;
+      const newDiplomatCoord = chief;
+
+      if (
+        enemyEmbassy &&
+        !embassyFirstCapture[opponent] &&
+        ((enemyEmbassy.q === newChiefCoord.q && enemyEmbassy.r === newChiefCoord.r) ||
+          (enemyEmbassy.q === newDiplomatCoord.q && enemyEmbassy.r === newDiplomatCoord.r))
+      ) {
+        infoScores[player] += 1;
+        embassyFirstCapture[opponent] = true;
+      }
+
+      const nextCastlingUsed: Record<Player, boolean> = {
+        ...gameState.castlingUsed,
+        [player]: true,
+      };
+
+      const draftState: GameState = {
+        ...gameState,
+        board,
+        infoScores,
+        embassyFirstCapture,
+        castlingUsed: nextCastlingUsed,
+        currentPlayer: opponent,
+        turn: gameState.turn + 1,
+      };
+
+      return applyEmbassyUpdates(gameState, draftState, board, player);
     }
 
     case "placeAmbassador": {
@@ -639,7 +894,7 @@ const applyAction = (gameState: GameState, action: GameAction): GameState => {
 
       // Transition to next phase
       if (gameState.gamePhase === "placement-ambassador-red") {
-        return {
+        const draftState: GameState = {
           ...gameState,
           board: nextBoard,
           unplacedPieces: nextUnplaced,
@@ -647,6 +902,7 @@ const applyAction = (gameState: GameState, action: GameAction): GameState => {
           gamePhase: "placement-ambassador-blue",
           currentPlayer: "Blue",
         };
+        return applyEmbassyUpdates(gameState, draftState, nextBoard, player);
       } else {
         // Blue has placed, now determine who places spies first
         if (!nextEmbassyLocations.Red || !nextEmbassyLocations.Blue) {
@@ -680,7 +936,7 @@ const applyAction = (gameState: GameState, action: GameAction): GameState => {
 
         const nextTerritories = getTerritories(nextBoard, nextEmbassyLocations);
 
-        return {
+        const draftState: GameState = {
           ...gameState,
           board: nextBoard,
           unplacedPieces: nextUnplaced,
@@ -690,6 +946,7 @@ const applyAction = (gameState: GameState, action: GameAction): GameState => {
           currentPlayer: spyPlacementFirstPlayer,
           mainGameFirstPlayer,
         };
+        return applyEmbassyUpdates(gameState, draftState, nextBoard, player);
       }
     }
 
@@ -750,7 +1007,7 @@ const applyAction = (gameState: GameState, action: GameAction): GameState => {
         }
       }
 
-      return {
+      const draftState: GameState = {
         // Explicitly construct the new state to prevent lost properties
         board: nextBoard,
         gamePhase: nextPhase,
@@ -768,7 +1025,11 @@ const applyAction = (gameState: GameState, action: GameAction): GameState => {
         mainGameFirstPlayer: gameState.mainGameFirstPlayer,
         gameOver: gameState.gameOver,
         winner: gameState.winner,
+        castlingUsed: gameState.castlingUsed,
+        embassyOccupation: gameState.embassyOccupation,
+        embassyRecaptureTurn: gameState.embassyRecaptureTurn,
       };
+      return applyEmbassyUpdates(gameState, draftState, nextBoard, player);
     }
 
     case "gatherInfo": {
@@ -794,17 +1055,24 @@ const applyAction = (gameState: GameState, action: GameAction): GameState => {
         returningSpies: [...gameState.returningSpies, pieceToReturn],
       };
 
-      const victory = checkVictory(updatedState);
+      const stateWithEmbassy = applyEmbassyUpdates(
+        gameState,
+        updatedState,
+        board,
+        player,
+      );
+
+      const victory = checkVictory(stateWithEmbassy);
       if (victory.gameOver) {
         return {
-          ...updatedState,
+          ...stateWithEmbassy,
           gameOver: true,
           winner: victory.winner,
         };
       }
 
       return {
-        ...updatedState,
+        ...stateWithEmbassy,
         currentPlayer: getOpponent(player),
         turn: gameState.turn + 1,
         gameOver: false,
@@ -831,7 +1099,7 @@ const applyAction = (gameState: GameState, action: GameAction): GameState => {
         (p) => p.id !== pieceId,
       );
 
-      return {
+      const draftState: GameState = {
         ...gameState,
         board,
         spiesReadyToReturn,
@@ -839,6 +1107,12 @@ const applyAction = (gameState: GameState, action: GameAction): GameState => {
         currentPlayer: getOpponent(gameState.currentPlayer),
         turn: gameState.turn + 1,
       };
+      return applyEmbassyUpdates(
+        gameState,
+        draftState,
+        board,
+        gameState.currentPlayer,
+      );
     }
 
     case "resurrect": {
@@ -854,22 +1128,40 @@ const applyAction = (gameState: GameState, action: GameAction): GameState => {
       const pieceToResurrect =
         gameState.capturedPieces[opponent][capturedPieceIndex];
 
-      // TODO: Add validation logic here if needed, though getValidActions should prevent illegal moves.
+      const toKey = toBoardKey(to);
+      const destinationTile = gameState.board[toKey];
+      if (!destinationTile || destinationTile.piece) {
+        return gameState;
+      }
+
+      if (pieceToResurrect.type === "Ambassador") {
+        const embassyCoord = gameState.embassyLocations[player];
+        if (!coordsEqual(embassyCoord ?? null, to)) {
+          return gameState;
+        }
+        if (gameState.embassyOccupation[player]) {
+          return gameState;
+        }
+        const recaptureTurn = gameState.embassyRecaptureTurn[player];
+        if (recaptureTurn !== null && gameState.turn <= recaptureTurn) {
+          return gameState;
+        }
+      }
 
       const board = cloneBoard(gameState.board);
-      const toKey = toBoardKey(to);
       board[toKey] = { ...board[toKey], piece: pieceToResurrect };
 
       const capturedPieces = clonePieceCollection(gameState.capturedPieces);
       capturedPieces[opponent].splice(capturedPieceIndex, 1);
 
-      return {
+      const draftState: GameState = {
         ...gameState,
         board,
         capturedPieces,
         currentPlayer: opponent,
         turn: gameState.turn + 1,
       };
+      return applyEmbassyUpdates(gameState, draftState, board, player);
     }
 
     default:
